@@ -45,3 +45,10 @@ allow-list warning instead of counting it immediately. Running the files in para
 race once in five runs; it was latent before. `npm test` is now `node --test test/*.test.js`, because
 bare `node --test` runs every `.js` under `test/`, the harness included, and reported 71. 70 tests,
 green on six consecutive runs. The pages that described the old file are updated.
+
+### Task 3 — refactor/rpc-error
+
+Landed: `src/rpc-error.js` exports `rpcError`. `src/app.js` imports it instead of defining it,
+and `src/auth.js` uses it for the `401` instead of building the envelope a second time. Every
+response body, status and header is unchanged, and the tests that pin them pass without edits.
+70/70.

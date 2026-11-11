@@ -1,4 +1,5 @@
 import { createHash, timingSafeEqual } from "node:crypto";
+import { rpcError } from "./rpc-error.js";
 
 /**
  * Bearer-token authentication for the HTTP transport.
@@ -99,19 +100,14 @@ export function requireBearerToken(token) {
 
     const challenge =
       credential === null ? 'Bearer realm="mcp"' : 'Bearer realm="mcp", error="invalid_token"';
-    res
-      .status(401)
-      .set("WWW-Authenticate", challenge)
-      .json({
-        jsonrpc: "2.0",
-        error: {
-          code: -32001,
-          message:
-            credential === null
-              ? "Unauthorized: send the token as Authorization: Bearer <token>"
-              : "Unauthorized: the token is not valid",
-        },
-        id: null,
-      });
+    res.set("WWW-Authenticate", challenge);
+    rpcError(
+      res,
+      401,
+      -32001,
+      credential === null
+        ? "Unauthorized: send the token as Authorization: Bearer <token>"
+        : "Unauthorized: the token is not valid",
+    );
   };
 }

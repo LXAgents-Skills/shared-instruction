@@ -2,6 +2,7 @@ import express from "express";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { hostHeaderValidation } from "@modelcontextprotocol/sdk/server/middleware/hostHeaderValidation.js";
 import { configuredToken, requireBearerToken, tokenProblem } from "./auth.js";
+import { rpcError } from "./rpc-error.js";
 import { createServer } from "./server.js";
 import { SERVER_NAME, VERSION } from "./version.js";
 
@@ -54,18 +55,6 @@ export function allowedHosts() {
     .split(",")
     .map((host) => host.trim())
     .filter(Boolean);
-}
-
-/**
- * A JSON-RPC error response.
- *
- * The shape every refusal on this server uses: the same envelope a client parses for a
- * successful response, so a client never has to branch on content type to find out it
- * was refused. The old SSE 404 answered with `{ error, detail }` instead, which is a
- * shape a JSON-RPC client has no parser for.
- */
-function rpcError(res, status, code, message) {
-  res.status(status).json({ jsonrpc: "2.0", error: { code, message }, id: null });
 }
 
 /**
