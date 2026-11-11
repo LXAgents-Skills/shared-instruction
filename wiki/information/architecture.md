@@ -9,6 +9,7 @@ src/
   index.js                    entry — picks the transport; stdio by default
   app.js                      the HTTP transport as an application — /mcp, /healthz. Does not listen.
   auth.js                     the bearer token: the strength check, and the middleware that enforces it
+  rpc-error.js                the JSON-RPC error envelope every refusal uses
   http.js                     entry — the cluster, the port, and the drain
   server.js                   builds the McpServer and registers the tool surface
   version.js                  ROOT, CONTENT_DIR, VERSION, SERVER_NAME
