@@ -66,3 +66,4 @@ the same commit that creates it.
 | [`../memory/tasks/skill-mcp-migration.md`](../memory/tasks/skill-mcp-migration.md) | Moving to the LXAgents-Skills organization and the Skill MCP instruction vocabulary, with the MCP SDK surface intact. |
 | [`../memory/tasks/code-optimization.md`](../memory/tasks/code-optimization.md) | The 6.0.1 cleanup: the HTTP test suite split by subject and one JSON-RPC error helper. |
 | [`../memory/tasks/prefixed-tool-ids.md`](../memory/tasks/prefixed-tool-ids.md) | Prefixing every tool id with `lxagents_skills_shared_instruction_` and moving the automation hub to the new ids. |
+| [`../memory/tasks/local-http-token.md`](../memory/tasks/local-http-token.md) | HTTP on loopback starts without `MCP_AUTH_TOKEN`; any other bind still requires it. |
