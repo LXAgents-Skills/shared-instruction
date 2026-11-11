@@ -154,7 +154,10 @@ test("the allow-list still runs before the token check", async () => {
 });
 
 test("the startup line says a token is required, and no log line ever carries one", async () => {
-  await withServer({}, async ({ url, output }) => {
+  await withServer({}, async ({ url, output, waitForOutput }) => {
+    // Each worker writes this line just after its startup line, and readiness waits only for the
+    // startup line, so the line is waited for rather than read at once.
+    await waitForOutput("bearer token required on every route except GET /healthz");
     assert.match(output(), /bearer token required on every route except GET \/healthz/);
 
     const attempt = "wrong-token-that-must-not-be-logged-0123456789";
