@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { CONTENT_DIR } from "../version.js";
 
 /**
@@ -12,7 +13,7 @@ import { CONTENT_DIR } from "../version.js";
 export const TOOL_PREFIX = "lxagents_skills_shared_instruction";
 
 /** A base name with the server prefix in front of it. */
-export function toolId(base) {
+export function toolId(base: string): string {
   return `${TOOL_PREFIX}_${base}`;
 }
 
@@ -31,7 +32,7 @@ export function toolId(base) {
  * Keys are set-relative paths. A key that matches no file is a startup error, so a
  * rename cannot leave an override quietly matching nothing.
  */
-const OVERRIDE_BASES = {
+const OVERRIDE_BASES: Readonly<Record<string, string>> = {
   "skills/github/actions.md": "github_actions",
   "skills/github/api.md": "github_api",
   "skills/github/authentication.md": "github_authentication",
@@ -51,9 +52,24 @@ const OVERRIDE_BASES = {
  * The overrides as full tool ids, keyed by set-relative path. The base names above are what
  * differs per file; the prefix is added here, once, so it cannot drift between entries.
  */
-export const NAME_OVERRIDES = Object.freeze(
+export const NAME_OVERRIDES: Readonly<Record<string, string>> = Object.freeze(
   Object.fromEntries(Object.entries(OVERRIDE_BASES).map(([path, base]) => [path, toolId(base)])),
 );
+
+/** What a tool is registered under: its id and the description its file's frontmatter gives. */
+export interface InstructionConfig {
+  name: string;
+  description: string;
+}
+
+/** One served file: how it is registered, and the handler that returns it whole. */
+export interface InstructionTool {
+  config: InstructionConfig;
+  handler: () => Promise<CallToolResult>;
+}
+
+/** The single-line scalar fields of a file's frontmatter, by key. */
+type Frontmatter = Record<string, string>;
 
 /** The shape an MCP client will accept as a tool name. */
 const TOOL_NAME = /^[a-z][a-z0-9_]{0,127}$/;
@@ -67,13 +83,13 @@ const TOOL_NAME = /^[a-z][a-z0-9_]{0,127}$/;
  * which `buildContentInstructions` treats as a startup error rather than letting the second
  * file silently shadow the first.
  */
-function toolNameFor(relativePath) {
+function toolNameFor(relativePath: string): string {
   const override = NAME_OVERRIDES[relativePath];
   if (override) return override;
 
   const base = relativePath
     .split("/")
-    .pop()
+    .pop()!
     .replace(/\.md$/, "")
     .toLowerCase()
     .replace(/-/g, "_");
@@ -81,8 +97,8 @@ function toolNameFor(relativePath) {
 }
 
 /** Every `.md` under the set root, as set-relative forward-slash paths, sorted. */
-function markdownFiles(dir = CONTENT_DIR, base = CONTENT_DIR) {
-  const found = [];
+function markdownFiles(dir: string = CONTENT_DIR, base: string = CONTENT_DIR): string[] {
+  const found: string[] = [];
 
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
@@ -109,11 +125,11 @@ function markdownFiles(dir = CONTENT_DIR, base = CONTENT_DIR) {
  * every length; with `\S` in front, handing a space back can never turn a failure
  * into a match, so a non-matching line costs one pass instead of one pass per space.
  */
-function parseFrontmatter(text) {
+function parseFrontmatter(text: string): Frontmatter | null {
   const block = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!block) return null;
 
-  const fields = {};
+  const fields: Frontmatter = {};
   for (const line of block[1].split(/\r?\n/)) {
     const field = line.match(/^([A-Za-z_][A-Za-z0-9_]*):[ \t]*(\S.*|)$/);
     if (field) fields[field[1]] = field[2].trim();
@@ -131,13 +147,11 @@ function parseFrontmatter(text) {
  *
  * The file is served whole, frontmatter included, byte-identical to what the set
  * holds — the frontmatter is part of the published text, not metadata to strip.
- *
- * @returns {{ tools: {config: object, handler: Function}[], files: Map<string, string> }}
  */
-function buildContentInstructions() {
-  const tools = [];
-  const files = new Map();
-  const claimed = new Map();
+function buildContentInstructions(): { tools: InstructionTool[]; files: Map<string, string> } {
+  const tools: InstructionTool[] = [];
+  const files = new Map<string, string>();
+  const claimed = new Map<string, string>();
   const paths = markdownFiles();
 
   for (const key of Object.keys(NAME_OVERRIDES)) {
@@ -175,7 +189,7 @@ function buildContentInstructions() {
     files.set(name, path);
     tools.push({
       config: { name, description: frontmatter.description },
-      handler: async () => ({ content: [{ type: "text", text }] }),
+      handler: async (): Promise<CallToolResult> => ({ content: [{ type: "text", text }] }),
     });
   }
 
@@ -188,9 +202,9 @@ function buildContentInstructions() {
 
 const { tools, files } = buildContentInstructions();
 
-export const CONTENT_INSTRUCTIONS = Object.freeze(tools);
+export const CONTENT_INSTRUCTIONS: readonly InstructionTool[] = Object.freeze(tools);
 
 /** Tool name -> the set-relative file it serves. The test suite pins both directions. */
-export const INSTRUCTION_FILES = files;
+export const INSTRUCTION_FILES: ReadonlyMap<string, string> = files;
 
 export default CONTENT_INSTRUCTIONS;

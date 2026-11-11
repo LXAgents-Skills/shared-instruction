@@ -1,22 +1,22 @@
 #!/usr/bin/env node
-import cluster from "node:cluster";
+import cluster, { type Worker } from "node:cluster";
 import { availableParallelism } from "node:os";
-import { LOOPBACK_HOSTNAMES, allowedHosts, createApp } from "./app.js";
+import { LOOPBACK_HOSTNAMES, allowedHosts, createApp, type RequestCloser } from "./app.js";
 import { MIN_TOKEN_LENGTH, configuredToken, isLoopbackHost, startupTokenProblem } from "./auth.js";
 import { SERVER_NAME, VERSION } from "./version.js";
 
 /**
  * The HTTP entry point, and the cluster that runs it.
  *
- * **This file, and not `src/index.js`, is what `npm run start:http` and the `Dockerfile`
- * name** — and neither may change, because the documented Docker command is
- * `node src/http.js`. Everywhere else in the organization the cluster and the port live in
- * `src/index.js`; here they live here, and `src/index.js` reaches this file by dynamic
+ * **This file, and not `src/index.ts`, is what `npm run start:http` and the `Dockerfile`
+ * name**, compiled to `dist/http.js` — and neither may change, because the documented Docker
+ * command is `node dist/http.js`. Everywhere else in the organization the cluster and the port live in
+ * `src/index.ts`; here they live here, and `src/index.ts` reaches this file by dynamic
  * import when `MCP_TRANSPORT=http` is set. The fork belongs on this path, not on the
  * stdio one. One extra hop, forced by a file that must not move. The task record under
  * `.agents/memory/tasks/` has the reasoning.
  *
- * The application itself is in `src/app.js`, which builds and returns an express app and
+ * The application itself is in `src/app.ts`, which builds and returns an express app and
  * does not listen. Every route but `GET /healthz` needs the bearer token in `MCP_AUTH_TOKEN`,
  * and this process will not start without one. This file owns the port, the interface, the workers, the startup lines,
  * and the drain.
@@ -35,13 +35,13 @@ const LOCAL_ONLY = isLoopbackHost(HOST);
  * Where the process says things.
  *
  * stderr, and not stdout. The stdio entry point is the reason: on that transport stdout
- * *is* the JSON-RPC channel, and `src/index.js` reaches this file to start HTTP, so a
+ * *is* the JSON-RPC channel, and `src/index.ts` reaches this file to start HTTP, so a
  * process that logs to stdout would be correct on one entry point and a protocol
  * corruption on the other. The rule is easier to hold as one rule than as an exception —
  * and a forked worker that wrote to the inherited stdout would corrupt the stream twice
  * over, once per copy of it.
  */
-function log(line) {
+function log(line: string): void {
   process.stderr.write(`${new Date().toISOString()} ${line}\n`);
 }
 
@@ -60,9 +60,8 @@ function log(line) {
  * says "I did not mean to set this" rather than "run no workers", which would be a server
  * that binds nothing and looks healthy.
  *
- * @returns {number}
  */
-function workerCount() {
+function workerCount(): number {
   const configured = Number.parseInt(process.env.MCP_CLUSTER_WORKERS ?? "", 10);
   if (Number.isInteger(configured) && configured >= 1) return configured;
   return Math.max(1, availableParallelism());
@@ -76,7 +75,7 @@ function workerCount() {
  * logic is written, because the scheduler already has the information (which connection is
  * next) that a sticky-session scheme would have to reconstruct.
  */
-function startWorker() {
+function startWorker(): void {
   // A worker whose primary is gone holds the port for whoever starts next. The test harness
   // kills the child process directly, so this is the difference between a suite that passes
   // and one that fails on its *second* run with EADDRINUSE against a process nobody
@@ -96,10 +95,8 @@ function startWorker() {
    *
    * Per worker, which is what makes it per worker correct: each process has its own requests
    * and its own `McpServer` per request, and nothing is shared between them.
-   *
-   * @type {Set<() => void>}
    */
-  const inFlight = new Set();
+  const inFlight = new Set<RequestCloser>();
 
   const server = createApp({ inFlight, requireToken: !LOCAL_ONLY }).listen(PORT, HOST, () => {
     const where = HOST === "0.0.0.0" ? "all interfaces" : HOST;
@@ -143,12 +140,10 @@ function startWorker() {
    * each request is self-contained, a fresh `McpServer` closed when its response closes — so
    * what drains is the requests. The line changed shape with that, and so did the test that
    * reads it.
-   *
-   * @param {string} signal
    */
   let shuttingDown = false;
 
-  const shutdown = (signal) => {
+  const shutdown = (signal: NodeJS.Signals): void => {
     // A second signal means the operator has stopped waiting.
     if (shuttingDown) {
       process.exit(0);
@@ -182,7 +177,7 @@ function startWorker() {
  * claiming a port it does not hold, and a health check that counted those lines would count
  * a process that answers nothing.
  */
-function startPrimary() {
+function startPrimary(): void {
   // Fail closed, before anything is forked. HTTP without a token is an open door on a network,
   // and the only thing that can be done about it is not to start. Checked here as well as in
   // `createApp` because here it is reported once: left to the workers, a missing token would be
@@ -241,7 +236,7 @@ function startPrimary() {
     forkWorker();
   });
 
-  function forkWorker() {
+  function forkWorker(): void {
     starts += 1;
     cluster.fork();
   }
@@ -257,14 +252,16 @@ function startPrimary() {
    * the server and then checks the port is refused must not race a primary that exits while
    * its workers are still answering.
    */
-  const shutdown = (signal) => {
+  const shutdown = (signal: NodeJS.Signals): void => {
     // A second signal means the operator has stopped waiting.
     if (draining) {
       process.exit(0);
     }
     draining = true;
 
-    const workers = Object.values(cluster.workers ?? {}).filter(Boolean);
+    const workers = Object.values(cluster.workers ?? {}).filter(
+      (worker): worker is Worker => worker !== undefined,
+    );
     log(`${SERVER_NAME} ${VERSION} ${signal}, draining ${workers.length} worker(s)`);
 
     // Unref'd: this timer is a backstop for a wedged worker, not a reason to keep the process

@@ -1,4 +1,5 @@
 import { createHash, timingSafeEqual } from "node:crypto";
+import type { RequestHandler } from "express";
 import { rpcError } from "./rpc-error.js";
 
 /**
@@ -12,7 +13,7 @@ import { rpcError } from "./rpc-error.js";
  * the caller holds the token — and the server refuses to run without one, rather than running
  * open and saying so in a log nobody reads.
  *
- * Nothing in this file is reached by the stdio entry point, and `src/index.js` never reads
+ * Nothing in this file is reached by the stdio entry point, and `src/index.ts` never reads
  * `MCP_AUTH_TOKEN` on that path.
  */
 
@@ -32,10 +33,8 @@ export const MIN_TOKEN_LENGTH = 32;
  * `0.0.0.0` and `::` are not loopback — they bind every interface — and neither is a hostname
  * that merely resolves to loopback today, because that can change without this process knowing.
  *
- * @param {string} host
- * @returns {boolean}
  */
-export function isLoopbackHost(host) {
+export function isLoopbackHost(host: string | undefined): boolean {
   const value = String(host ?? "").trim().toLowerCase().replace(/^\[(.*)\]$/, "$1");
   return value === "localhost" || value === "::1" || /^127(\.\d{1,3}){3}$/.test(value);
 }
@@ -47,11 +46,8 @@ export function isLoopbackHost(host) {
  * is still checked: setting one is asking for it, and quietly running open instead would be a
  * downgrade nobody chose.
  *
- * @param {string} host
- * @param {string} [token]
- * @returns {string | null}
  */
-export function startupTokenProblem(host, token = configuredToken()) {
+export function startupTokenProblem(host: string, token: string = configuredToken()): string | null {
   if (token === "" && isLoopbackHost(host)) return null;
   return tokenProblem(token);
 }
@@ -64,9 +60,8 @@ export function startupTokenProblem(host, token = configuredToken()) {
  * unsets it. Surrounding whitespace is dropped, because a token copied out of a file or an
  * `env_file` often carries a trailing newline and an HTTP header cannot.
  *
- * @returns {string}
  */
-export function configuredToken() {
+export function configuredToken(): string {
   return (process.env.MCP_AUTH_TOKEN ?? "").trim();
 }
 
@@ -75,10 +70,8 @@ export function configuredToken() {
  *
  * The message names the variable and the fix and never the value, so it is safe to log.
  *
- * @param {string} [token]
- * @returns {string | null}
  */
-export function tokenProblem(token = configuredToken()) {
+export function tokenProblem(token: string = configuredToken()): string | null {
   if (token === "") return "MCP_AUTH_TOKEN is not set";
   if (token.length < MIN_TOKEN_LENGTH) {
     return `MCP_AUTH_TOKEN is ${token.length} characters, and it must be at least ${MIN_TOKEN_LENGTH}`;
@@ -87,7 +80,7 @@ export function tokenProblem(token = configuredToken()) {
 }
 
 /** SHA-256 of a string, so two values of any length compare in constant time. */
-function digest(value) {
+function digest(value: string): Buffer {
   return createHash("sha256").update(value).digest();
 }
 
@@ -98,10 +91,8 @@ function digest(value) {
  * of them — is not a bearer credential. The pattern is linear: the space run and the credential
  * are disjoint character classes.
  *
- * @param {string | undefined} header
- * @returns {string | null}
  */
-function bearerCredential(header) {
+function bearerCredential(header: string | undefined): string | null {
   const match = /^Bearer +(\S+)$/i.exec(header ?? "");
   return match ? match[1] : null;
 }
@@ -117,10 +108,9 @@ function bearerCredential(header) {
  * The comparison is constant-time over fixed-length digests, so neither the token's length nor
  * how much of it a guess got right shows in how long the answer takes.
  *
- * @param {string} token A token that already passed `tokenProblem`.
- * @returns {import("express").RequestHandler}
+ * @param token A token that already passed `tokenProblem`.
  */
-export function requireBearerToken(token) {
+export function requireBearerToken(token: string): RequestHandler {
   const expected = digest(token);
 
   return (req, res, next) => {

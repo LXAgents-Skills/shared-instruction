@@ -10,6 +10,7 @@ import {
   connect,
   openClients,
   inMemoryClient,
+  type ExitStatus,
 } from "./helpers/http-harness.js";
 
 /**
@@ -252,7 +253,7 @@ test(
   { skip: process.platform === "win32" ? "no signal delivery on Windows" : false },
   async () => {
     await withServer({}, async ({ child, url, output }) => {
-      const exited = new Promise((resolveExit) =>
+      const exited = new Promise<ExitStatus>((resolveExit) =>
         child.once("exit", (code, signal) => resolveExit({ code, signal }))
       );
       child.kill("SIGINT");

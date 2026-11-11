@@ -4,6 +4,7 @@ import { join, relative, sep } from "node:path";
 import test from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import type { CallToolResult, TextContent } from "@modelcontextprotocol/sdk/types.js";
 import { CONTENT_DIR } from "../src/version.js";
 import { NAME_OVERRIDES, INSTRUCTION_FILES, TOOL_PREFIX, toolId } from "../src/instructions/from-content.js";
 
@@ -25,15 +26,17 @@ async function connect() {
 }
 
 /** The text of a single-content tool result. */
-function textOf(result) {
-  assert.equal(result.content.length, 1, "expected exactly one content block");
-  assert.equal(result.content[0].type, "text");
-  return result.content[0].text;
+function textOf(result: CallToolResult | Record<string, unknown>): string {
+  const { content } = result as CallToolResult;
+  assert.equal(content.length, 1, "expected exactly one content block");
+  const [block] = content;
+  assert.equal(block?.type, "text");
+  return (block as TextContent).text;
 }
 
 /** Every markdown file in the served set, as [path-relative-to-content, absolute]. */
-async function markdownFiles(dir = CONTENT_DIR) {
-  const found = [];
+async function markdownFiles(dir: string = CONTENT_DIR): Promise<[path: string, full: string][]> {
+  const found: [path: string, full: string][] = [];
 
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
@@ -106,7 +109,7 @@ test("every tool name is derived from its own filename, or is an explicit overri
     const expected = toolId(
       path
         .split("/")
-        .pop()
+        .pop()!
         .replace(/\.md$/, "")
         .toLowerCase()
         .replace(/-/g, "_"),
@@ -249,10 +252,11 @@ const HUB_NAME = "Read this tool every session";
 const HUB_BUDGET = 10_000;
 
 /** The `- \`id\` — condition` rows of the hub. */
-function hubRows(text) {
+function hubRows(text: string): { id: string; condition: string }[] {
   return [...text.matchAll(/^- `([a-z][a-z0-9_]*)` — (.+)$/gm)].map((m) => ({
-    id: m[1],
-    condition: m[2],
+    // Both groups are required by the pattern, so a match always has them.
+    id: m[1]!,
+    condition: m[2]!,
   }));
 }
 
@@ -260,10 +264,10 @@ test("automation is the first tool, and says it is read every session", async ()
   const { client } = await connect();
   const { tools } = await client.listTools();
 
-  assert.equal(tools[0].name, HUB, "the hub must be the first tool a client lists");
+  assert.equal(tools[0]!.name, HUB, "the hub must be the first tool a client lists");
   assert.ok(
-    tools[0].description.startsWith(HUB_NAME),
-    `the description must open with "${HUB_NAME}", found: ${tools[0].description.slice(0, 60)}`,
+    tools[0]!.description!.startsWith(HUB_NAME),
+    `the description must open with "${HUB_NAME}", found: ${tools[0]!.description!.slice(0, 60)}`,
   );
 
   const text = textOf(await client.callTool({ name: HUB, arguments: {} }));
@@ -314,16 +318,27 @@ test("the server's own instructions send a session to automation first", async (
 // below is deliberately about links, filenames and ids, not about prose: single words such as
 // `api` or `issues` are ordinary English, so only the forms that can only mean a file are matched.
 
+/** A served file, as the pointer audit reads it. */
+interface ToolFile {
+  name: string;
+  base: string;
+  path: string;
+  text: string;
+  stem: string;
+  overridden: boolean;
+  frontmatterName: string;
+}
+
 /** Anthropic's own skills happen to share names with two tools here. They are facts, not pointers. */
-const EXTERNAL_NAMES = {
+const EXTERNAL_NAMES: Record<string, string[]> = {
   "skills/reference/anthropic-agent-skills.md": ["skill-creator", "skill_creator", "mcp-builder", "mcp_builder"],
 };
 
-const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** Every pointer from `file` to a different tool, as [line, kind, what]. */
-function pointersFrom(file, tools) {
-  const hits = [];
+function pointersFrom(file: ToolFile, tools: ToolFile[]): [line: number, kind: string, what: string][] {
+  const hits: [line: number, kind: string, what: string][] = [];
   const allowed = new Set(EXTERNAL_NAMES[file.path] ?? []);
 
   file.text.split("\n").forEach((line, index) => {
@@ -373,7 +388,7 @@ function pointersFrom(file, tools) {
 }
 
 test("every tool except automation ends in itself", async () => {
-  const tools = [];
+  const tools: ToolFile[] = [];
   for (const [name, path] of INSTRUCTION_FILES) {
     const text = await readFile(join(CONTENT_DIR, path), "utf8");
     tools.push({
@@ -381,7 +396,7 @@ test("every tool except automation ends in itself", async () => {
       base: name.slice(TOOL_PREFIX.length + 1),
       path,
       text,
-      stem: path.split("/").pop().replace(/\.md$/, ""),
+      stem: path.split("/").pop()!.replace(/\.md$/, ""),
       overridden: Object.hasOwn(NAME_OVERRIDES, path),
       frontmatterName: text.match(/^name:\s*(\S.*)$/m)?.[1].trim() ?? "",
     });

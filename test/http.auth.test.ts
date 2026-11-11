@@ -197,7 +197,7 @@ test("a token of exactly the minimum length is accepted", async () => {
 });
 
 test("HTTP off loopback refuses to start without a usable token", async () => {
-  const cases = [
+  const cases: [name: string, token: string, message: RegExp][] = [
     ["unset", "", /MCP_AUTH_TOKEN is not set/],
     ["only whitespace", "  \n ", /MCP_AUTH_TOKEN is not set/],
     ["too short", "short-secret", /MCP_AUTH_TOKEN is 12 characters, and it must be at least 32/],
@@ -220,7 +220,7 @@ test("HTTP off loopback refuses to start without a usable token", async () => {
   }
 });
 
-test("the refusal to start is the same through src/index.js, and printed once however many workers", async () => {
+test("the refusal to start is the same through dist/index.js, and printed once however many workers", async () => {
   for (const env of [
     { MCP_TRANSPORT: "http", HOST: "0.0.0.0", MCP_AUTH_TOKEN: "" },
     { MCP_TRANSPORT: "http", HOST: "0.0.0.0", MCP_AUTH_TOKEN: "", MCP_CLUSTER_WORKERS: "3" },
@@ -279,7 +279,7 @@ test("isLoopbackHost and startupTokenProblem", () => {
   }
 
   assert.equal(startupTokenProblem("127.0.0.1", ""), null);
-  assert.match(startupTokenProblem("127.0.0.1", "short"), /must be at least 32/);
+  assert.match(startupTokenProblem("127.0.0.1", "short") ?? "", /must be at least 32/);
   assert.equal(startupTokenProblem("127.0.0.1", TEST_TOKEN), null);
   assert.equal(startupTokenProblem("0.0.0.0", ""), "MCP_AUTH_TOKEN is not set");
   assert.equal(startupTokenProblem("0.0.0.0", TEST_TOKEN), null);
@@ -308,7 +308,7 @@ test("createApp cannot be built without a usable token", () => {
 
 test("tokenProblem and configuredToken", () => {
   assert.equal(tokenProblem(""), "MCP_AUTH_TOKEN is not set");
-  assert.match(tokenProblem("k".repeat(31)), /is 31 characters, and it must be at least 32/);
+  assert.match(tokenProblem("k".repeat(31)) ?? "", /is 31 characters, and it must be at least 32/);
   assert.equal(tokenProblem("k".repeat(32)), null);
   assert.equal(tokenProblem(TEST_TOKEN), null);
 
@@ -328,7 +328,7 @@ test("stdio never reads the token, so even an unusable one does not stop it", as
   const client = new Client({ name: "stdio-token-test", version: "0.0.0" });
   const transport = new StdioClientTransport({
     command: process.execPath,
-    args: ["src/index.js"],
+    args: ["dist/index.js"],
     cwd: ROOT,
     // Too short to start HTTP with. If stdio read the variable at all, this would fail it.
     env: { ...process.env, MCP_TRANSPORT: "stdio", MCP_AUTH_TOKEN: "x" },
