@@ -35,6 +35,16 @@ import { SERVER_NAME, VERSION } from "./version.js";
 export const BODY_LIMIT_BYTES = 4 * 1024 * 1024;
 
 /**
+ * The `Host` names a token-less local server answers to when no allow-list is configured.
+ *
+ * A loopback bind keeps other machines out, but not a web page in this machine's browser: DNS
+ * rebinding can point a hostile domain at `127.0.0.1`, and the browser then sends that domain as
+ * the `Host`. With no token to stop it, the `Host` check is what does, so an open server always
+ * has one. `MCP_ALLOWED_HOSTS`, when set, replaces this list.
+ */
+export const LOOPBACK_HOSTNAMES = Object.freeze(["localhost", "127.0.0.1", "[::1]"]);
+
+/**
  * The `Host` header allow-list, when one is configured.
  *
  * This is the control that used to default to off. The removed implementation shipped
@@ -68,16 +78,23 @@ export function allowedHosts() {
  *   drain can actually act on.
  *
  *   `token` is the bearer token every request but `/healthz` must carry. It defaults to
- *   `MCP_AUTH_TOKEN`, read now. **There is no way to build this app without one**: a missing or
- *   too-short token throws, so an unauthenticated HTTP server cannot come from forgetting an
- *   option. `src/http.js` checks first, in the primary, to report it once instead of once per
+ *   `MCP_AUTH_TOKEN`, read now. **By default there is no way to build this app without one**: a
+ *   missing or too-short token throws, so an unauthenticated HTTP server cannot come from
+ *   forgetting an option. `requireToken: false` is the one way to build it open, and only when
+ *   no token is given; `src/http.js` passes it for a loopback bind, where only this machine can
+ *   connect. `src/http.js` checks first, in the primary, to report it once instead of once per
  *   worker.
  * @returns {import("express").Express}
  */
-export function createApp({ inFlight, token = configuredToken() } = {}) {
-  const problem = tokenProblem(token);
-  if (problem) {
-    throw new Error(`Refusing to build the HTTP app: ${problem}.`);
+export function createApp({ inFlight, token = configuredToken(), requireToken = true } = {}) {
+  // Open only when the caller said so and there is no token to enforce. A token that was given is
+  // always enforced, and always has to be usable.
+  const open = !requireToken && token === "";
+  if (!open) {
+    const problem = tokenProblem(token);
+    if (problem) {
+      throw new Error(`Refusing to build the HTTP app: ${problem}.`);
+    }
   }
 
   const app = express();
@@ -104,7 +121,8 @@ export function createApp({ inFlight, token = configuredToken() } = {}) {
   // default, so without an explicit list there is no `Host` filtering in exactly the
   // deployment — a container, a shared host — where it would matter. This is carried
   // forward from the SSE implementation unchanged, including that reasoning.
-  const hosts = allowedHosts();
+  const configured = allowedHosts();
+  const hosts = configured.length > 0 ? configured : open ? [...LOOPBACK_HOSTNAMES] : [];
   if (hosts.length > 0) {
     app.use(hostHeaderValidation(hosts));
   }
@@ -119,14 +137,16 @@ export function createApp({ inFlight, token = configuredToken() } = {}) {
   // only `{ status, server, version }`. The exemption is never looser than the route: express
   // would also match `/healthz/` and `HEAD`, and those fall through to the check and are
   // refused, which is the safe direction to be wrong in.
-  const authenticate = requireBearerToken(token);
-  app.use((req, res, next) => {
-    if (req.method === "GET" && req.path === "/healthz") {
-      next();
-      return;
-    }
-    authenticate(req, res, next);
-  });
+  if (!open) {
+    const authenticate = requireBearerToken(token);
+    app.use((req, res, next) => {
+      if (req.method === "GET" && req.path === "/healthz") {
+        next();
+        return;
+      }
+      authenticate(req, res, next);
+    });
+  }
 
   app.use(express.json({ limit: BODY_LIMIT_BYTES }));
 
