@@ -131,9 +131,9 @@ still absent from the tool surface until the session restarts.
 ## Docker
 
 ```bash
-docker build -t lxagents-shared-instruction:6.0.4 .
-docker run --rm -i lxagents-shared-instruction:6.0.4                            # stdio
-docker run --rm -p 3000:3000 -e MCP_AUTH_TOKEN lxagents-shared-instruction:6.0.4 node dist/http.js  # HTTP
+docker build -t lxagents-shared-instruction:6.0.5 .
+docker run --rm -i lxagents-shared-instruction:6.0.5                            # stdio
+docker run --rm -p 3000:3000 -e MCP_AUTH_TOKEN lxagents-shared-instruction:6.0.5 node dist/http.js  # HTTP
 ```
 
 A pinned, non-root image for hosts that cannot run Node 20. The default entrypoint is

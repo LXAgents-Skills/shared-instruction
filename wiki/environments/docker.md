@@ -26,7 +26,7 @@ stdout, or reach it over HTTP. What the image buys either way:
 ## Build
 
 ```bash
-docker build -t lxagents-shared-instruction:6.0.4 .
+docker build -t lxagents-shared-instruction:6.0.5 .
 ```
 
 Tag it with the version in `package.json` rather than `latest`. The image's job is to
@@ -37,7 +37,7 @@ be reproducible, and `latest` is the one tag that cannot be.
 stdio means the container's stdin has to stay open and attached:
 
 ```bash
-docker run --rm -i lxagents-shared-instruction:6.0.4
+docker run --rm -i lxagents-shared-instruction:6.0.5
 ```
 
 **`-i` is not optional.** Without it Docker does not attach stdin, the server sees
@@ -49,7 +49,7 @@ missing flag. There is nothing to publish: this form has no port.
 Override the entrypoint to serve instead of attaching a pipe:
 
 ```bash
-docker run --rm -p 3000:3000 -e MCP_AUTH_TOKEN lxagents-shared-instruction:6.0.4 node dist/http.js
+docker run --rm -p 3000:3000 -e MCP_AUTH_TOKEN lxagents-shared-instruction:6.0.5 node dist/http.js
 ```
 
 **`MCP_AUTH_TOKEN` is required for this form.** `-e MCP_AUTH_TOKEN` with no value passes the
@@ -75,7 +75,7 @@ allow-list is off unless you set it:
 docker run --rm -p 3000:3000 \
   -e MCP_AUTH_TOKEN \
   -e MCP_ALLOWED_HOSTS=shared-instruction.example.com \
-  lxagents-shared-instruction:6.0.4 node dist/http.js
+  lxagents-shared-instruction:6.0.5 node dist/http.js
 ```
 
 See [Environment variables](env.md) and the
@@ -88,7 +88,7 @@ To point an MCP client at it, give it the same command with the container attach
   "mcpServers": {
     "lxagents-shared-instruction": {
       "command": "docker",
-      "args": ["run", "--rm", "-i", "lxagents-shared-instruction:6.0.4"]
+      "args": ["run", "--rm", "-i", "lxagents-shared-instruction:6.0.5"]
     }
   }
 }
@@ -132,7 +132,7 @@ their behalf.
 ## Verifying an image
 
 ```bash
-docker run --rm -i lxagents-shared-instruction:6.0.4 < ../dev/null
+docker run --rm -i lxagents-shared-instruction:6.0.5 < ../dev/null
 ```
 
 With stdin closed the server exits at once, so this checks that the entrypoint

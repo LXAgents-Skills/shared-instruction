@@ -250,8 +250,8 @@ second carries it without the compiler), and ends as `USER node`. It declares `E
 and its default entrypoint is still the stdio server; the HTTP one is a command away:
 
 ```bash
-docker run --rm -i lxagents-shared-instruction:6.0.4                     # stdio
-docker run --rm -p 3000:3000 -e MCP_AUTH_TOKEN lxagents-shared-instruction:6.0.4 \
+docker run --rm -i lxagents-shared-instruction:6.0.5                     # stdio
+docker run --rm -p 3000:3000 -e MCP_AUTH_TOKEN lxagents-shared-instruction:6.0.5 \
   node dist/http.js                                                        # HTTP, token required
 ```
 

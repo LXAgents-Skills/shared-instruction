@@ -5,7 +5,7 @@ description: Moving the server and its tests from plain JavaScript to strict Typ
 
 # TypeScript Migration
 
-## 2026-11-11 — in progress
+## 2026-11-11 — done
 
 **Goal.** The server is written in TypeScript with strict typing, on the latest dependencies, with
 no change to what any client sees.
@@ -25,11 +25,11 @@ committed" half is kept.
 
 | # | Title | Branch | PR |
 |---|---|---|---|
-| 1 | Task record | `plan/typescript-migration` | |
-| 2 | Latest dependencies | `chore/dependencies` | |
-| 3 | TypeScript conversion | `refactor/typescript` | |
-| 4 | Documentation | `docs/typescript` | |
-| 5 | Release | `release/{version}` | |
+| 1 | Task record | `plan/typescript-migration` | [#22](https://github.com/LXAgents-Skills/shared-instruction/pull/22) |
+| 2 | Latest dependencies | `chore/dependencies` | [#23](https://github.com/LXAgents-Skills/shared-instruction/pull/23) |
+| 3 | TypeScript conversion | `refactor/typescript` | [#24](https://github.com/LXAgents-Skills/shared-instruction/pull/24) |
+| 4 | Documentation | `docs/typescript` | [#25](https://github.com/LXAgents-Skills/shared-instruction/pull/25) |
+| 5 | Release | `release/6.0.5` | [#26](https://github.com/LXAgents-Skills/shared-instruction/pull/26) |
 
 ## Decisions
 
@@ -91,3 +91,10 @@ now describes the TypeScript stack (D1–D3) in place of "no build step, no Type
 "no compiled output committed", and adds "no `any`". `install-as-local-mcp.md` said 19 passing
 tests; it says 74. Release logs, memory and the logs index are history and were left as written.
 Nothing under `content/` changed.
+
+### Task 5 — release/6.0.5
+
+Landed: version `6.0.5` in `package.json` and the lockfile, the image tag in the README, the
+Docker page and the security model, `wiki/logs/6/0/5/CHANGELOG.md`, its row in `logs-index.md`
+(with the `6.0.4` row that release left out), the version line in `repository-state.md`, and the
+PR column above. No tag was created.
