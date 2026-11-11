@@ -40,3 +40,13 @@ condition is invented. The longest id is 60 characters, under the 64 many client
 ### Task 1 — plan/prefixed-tool-ids
 
 Landed: this record and its row in `memory-index.md`.
+
+### Task 2 — feat/prefixed-tool-ids
+
+Landed: `TOOL_PREFIX` and `toolId()` in `src/instructions/from-content.js`; `toolNameFor` returns
+`${TOOL_PREFIX}_${base}`; the overrides are base names in `OVERRIDE_BASES`, exported prefixed as
+`NAME_OVERRIDES`; `TOOL_NAME` is `{0,127}`. `content/automation.md` keeps its frontmatter and its
+47 rows, every id now prefixed (51 ids including the four in its rules). The `initialize` string
+names the prefixed hub. Tests assert the prefix and underscores-only, and call tools by
+`toolId(base)`; the ends-in-itself detector still matches overridden tools by their base name.
+70/70.

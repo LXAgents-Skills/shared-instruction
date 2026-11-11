@@ -27,7 +27,7 @@ export function createServer() {
     { name: SERVER_NAME, version: VERSION },
     {
       instructions:
-        "The LXAgents shared agent instruction set, served as Skill MCP instructions, read-only. Read the `automation` tool once at the start of every session: it lists every tool and the condition that activates each. Call no other tool until its condition is true. Each tool is complete on its own and points to no other.",
+        "The LXAgents shared agent instruction set, served as Skill MCP instructions, read-only. Read the `lxagents_skills_shared_instruction_automation` tool once at the start of every session: it lists every tool and the condition that activates each. Call no other tool until its condition is true. Each tool is complete on its own and points to no other.",
     },
   );
 

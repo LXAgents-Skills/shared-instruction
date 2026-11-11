@@ -5,7 +5,10 @@ import test from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { CONTENT_DIR } from "../src/version.js";
-import { NAME_OVERRIDES, INSTRUCTION_FILES } from "../src/instructions/from-content.js";
+import { NAME_OVERRIDES, INSTRUCTION_FILES, TOOL_PREFIX, toolId } from "../src/instructions/from-content.js";
+
+/** The hub's full tool id. */
+const HUB = toolId("automation");
 import { INSTRUCTION_MODULES, createServer } from "../src/server.js";
 
 /** A client connected to a fresh server over an in-memory pipe. */
@@ -91,19 +94,23 @@ test("every tool name is derived from its own filename, or is an explicit overri
   // kebab to snake. The overrides are the documented exceptions, and they are
   // checked here by path so an override cannot drift away from the file it names.
   for (const [name, path] of INSTRUCTION_FILES) {
-    assert.match(name, /^[a-z][a-z0-9_]{0,63}$/, `${name} is not a usable tool name`);
+    assert.match(name, /^[a-z][a-z0-9_]{0,127}$/, `${name} is not a usable tool name`);
+    assert.ok(name.startsWith(`${TOOL_PREFIX}_`), `${name} must carry the ${TOOL_PREFIX}_ prefix`);
+    assert.doesNotMatch(name, /-/, `${name} must use underscores only`);
 
     if (Object.hasOwn(NAME_OVERRIDES, path)) {
       assert.equal(name, NAME_OVERRIDES[path], `${path} must be named by its override`);
       continue;
     }
 
-    const expected = path
-      .split("/")
-      .pop()
-      .replace(/\.md$/, "")
-      .toLowerCase()
-      .replace(/-/g, "_");
+    const expected = toolId(
+      path
+        .split("/")
+        .pop()
+        .replace(/\.md$/, "")
+        .toLowerCase()
+        .replace(/-/g, "_"),
+    );
 
     assert.equal(name, expected, `${path} derives ${name}, expected ${expected}`);
   }
@@ -128,8 +135,8 @@ test("forge pages are named for their forge", () => {
     if (!forge) continue;
 
     assert.ok(
-      name.startsWith(`${forge}_`),
-      `${path} is a ${forge} page and must be named ${forge}_…, found ${name}`,
+      name.startsWith(toolId(`${forge}_`)),
+      `${path} is a ${forge} page and must be named ${toolId(forge)}_…, found ${name}`,
     );
   }
 });
@@ -253,24 +260,24 @@ test("automation is the first tool, and says it is read every session", async ()
   const { client } = await connect();
   const { tools } = await client.listTools();
 
-  assert.equal(tools[0].name, "automation", "the hub must be the first tool a client lists");
+  assert.equal(tools[0].name, HUB, "the hub must be the first tool a client lists");
   assert.ok(
     tools[0].description.startsWith(HUB_NAME),
     `the description must open with "${HUB_NAME}", found: ${tools[0].description.slice(0, 60)}`,
   );
 
-  const text = textOf(await client.callTool({ name: "automation", arguments: {} }));
+  const text = textOf(await client.callTool({ name: HUB, arguments: {} }));
   assert.match(text, new RegExp(`^---\\r?\\nname: ${HUB_NAME}\\r?\\n`));
 });
 
 test("automation routes every other tool exactly once, and no tool that does not exist", async () => {
   const { client } = await connect();
   const { tools } = await client.listTools();
-  const text = textOf(await client.callTool({ name: "automation", arguments: {} }));
+  const text = textOf(await client.callTool({ name: HUB, arguments: {} }));
 
   const rows = hubRows(text);
   const listed = rows.map((row) => row.id);
-  const expected = tools.map((tool) => tool.name).filter((name) => name !== "automation");
+  const expected = tools.map((tool) => tool.name).filter((name) => name !== HUB);
 
   assert.deepEqual([...listed].sort(), [...expected].sort());
   assert.equal(new Set(listed).size, listed.length, "a tool is listed twice");
@@ -285,7 +292,7 @@ test("automation routes every other tool exactly once, and no tool that does not
 
 test("automation stays small enough to read every session", async () => {
   const { client } = await connect();
-  const text = textOf(await client.callTool({ name: "automation", arguments: {} }));
+  const text = textOf(await client.callTool({ name: HUB, arguments: {} }));
 
   assert.ok(
     text.length <= HUB_BUDGET,
@@ -297,7 +304,7 @@ test("the server's own instructions send a session to automation first", async (
   const { client } = await connect();
   const instructions = client.getInstructions() ?? "";
 
-  assert.match(instructions, /`automation`/);
+  assert.match(instructions, new RegExp(`\`${HUB}\``));
   assert.match(instructions, /every session/);
   assert.doesNotMatch(instructions, /Call nothing at session start/);
 });
@@ -345,7 +352,7 @@ function pointersFrom(file, tools) {
       // A stem is only an id when no override renames it: `pull-requests` is a GitHub API
       // word, `github_pull_requests` is the tool.
       const words = new Set(
-        [other.overridden ? other.name : other.stem, other.frontmatterName].filter((word) =>
+        [other.overridden ? other.base : other.stem, other.frontmatterName].filter((word) =>
           /[-_]/.test(word),
         ),
       );
@@ -371,6 +378,7 @@ test("every tool except automation ends in itself", async () => {
     const text = await readFile(join(CONTENT_DIR, path), "utf8");
     tools.push({
       name,
+      base: name.slice(TOOL_PREFIX.length + 1),
       path,
       text,
       stem: path.split("/").pop().replace(/\.md$/, ""),
@@ -381,7 +389,7 @@ test("every tool except automation ends in itself", async () => {
 
   const problems = [];
   for (const tool of tools) {
-    if (tool.name === "automation") continue; // the hub is the one tool that routes to the others
+    if (tool.name === HUB) continue; // the hub is the one tool that routes to the others
     for (const [line, kind, what] of pointersFrom(tool, tools)) {
       problems.push(`${tool.path}:${line} points at ${what} (${kind})`);
     }
@@ -400,7 +408,8 @@ test("every tool except automation ends in itself", async () => {
 test("every tool that names branches states the release branch form", async () => {
   const { client } = await connect();
 
-  for (const name of ["plan_creator", "branching_strategy", "branch_and_commit"]) {
+  for (const base of ["plan_creator", "branching_strategy", "branch_and_commit"]) {
+    const name = toolId(base);
     const text = textOf(await client.callTool({ name, arguments: {} }));
 
     assert.ok(
@@ -428,7 +437,7 @@ test("no tool shows the retired chore/release branch form", async () => {
     const text = textOf(await client.callTool({ name, arguments: {} }));
 
     // branching_strategy lists it once, as a bad example, so it is allowed to name it.
-    if (name === "branching_strategy") continue;
+    if (name === toolId("branching_strategy")) continue;
 
     assert.doesNotMatch(text, /chore\/release/, `${name} still shows chore/release`);
   }
@@ -473,7 +482,7 @@ test("the server needs no key to answer", async () => {
 
   const { client } = await connect();
   const text = textOf(
-    await client.callTool({ name: "plan_creator", arguments: {} }),
+    await client.callTool({ name: toolId("plan_creator"), arguments: {} }),
   );
 
   assert.ok(text.length > 500, "the set is served without a key");

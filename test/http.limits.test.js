@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { toolId } from "../src/instructions/from-content.js";
 import { BODY_LIMIT_BYTES } from "../src/app.js";
 import {
   bearer,
@@ -28,7 +29,7 @@ test("a body over the limit is refused, and says so in the JSON-RPC envelope", a
       id: 1,
       method: "tools/call",
       params: {
-        name: "branching_strategy",
+        name: toolId("branching_strategy"),
         arguments: {},
         padding: "x".repeat(BODY_LIMIT_BYTES),
       },
