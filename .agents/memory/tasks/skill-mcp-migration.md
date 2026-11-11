@@ -54,3 +54,12 @@ Landed: `LXAgents-MCP` → `LXAgents-Skills` and `@lxagents-mcp/` → `@lxagents
 current files, including `package.json`, `package-lock.json`, `README.md`, `AGENTS.md` and two
 `content/` files. The git remote already pointed at `LXAgents-Skills`. The Render hostname
 `lxagents-mcp-shared-instruction.onrender.com` is a deployed address, not a name, and is kept.
+
+### Task 3 — refactor/instructions
+
+Landed: `src/tools/` is `src/instructions/` (a `git mv`, so history follows). `TOOL_MODULES` is
+`INSTRUCTION_MODULES`, `CONTENT_TOOLS` is `CONTENT_INSTRUCTIONS`, `TOOL_FILES` is
+`INSTRUCTION_FILES`, and `buildContentTools` is `buildContentInstructions`, in `src/`, both test
+files, and every page that names them. `server.registerTool`, `listTools()`, the `tools/list` and
+`tools/call` methods, and `TOOL_NAME` (it validates the MCP wire name) are unchanged. 70/70 tests
+pass.

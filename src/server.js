@@ -1,11 +1,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { CONTENT_TOOLS } from "./tools/from-content.js";
+import { CONTENT_INSTRUCTIONS } from "./instructions/from-content.js";
 import { SERVER_NAME, VERSION } from "./version.js";
 
 /**
  * Every tool this server exposes.
  *
- * One per file in `content/`, built by `tools/from-content.js`. A tool registered
+ * One per file in `content/`, built by `instructions/from-content.js`. A tool registered
  * anywhere else is invisible to `listTools()`, to the client's `tools/list`, and to
  * the test suite. This array is the whole surface — there is no discovery, and no
  * way to add a tool at runtime.
@@ -15,7 +15,7 @@ import { SERVER_NAME, VERSION } from "./version.js";
  * the set are absent, not disabled, so pointing a repository at this server cannot
  * mutate it.
  */
-const TOOL_MODULES = [...CONTENT_TOOLS];
+const INSTRUCTION_MODULES = [...CONTENT_INSTRUCTIONS];
 
 /**
  * Build the MCP server.
@@ -31,7 +31,7 @@ export function createServer() {
     },
   );
 
-  for (const { config, handler } of TOOL_MODULES) {
+  for (const { config, handler } of INSTRUCTION_MODULES) {
     server.registerTool(
       config.name,
       { description: config.description, inputSchema: config.schema },
@@ -42,4 +42,4 @@ export function createServer() {
   return server;
 }
 
-export { TOOL_MODULES };
+export { INSTRUCTION_MODULES };

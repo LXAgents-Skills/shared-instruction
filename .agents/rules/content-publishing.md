@@ -27,7 +27,7 @@ go into `content/`.
 
 ## Boot invariants
 
-`src/tools/from-content.js` builds the whole tool surface at import and **throws rather
+`src/instructions/from-content.js` builds the whole tool surface at import and **throws rather
 than start** when one of these is violated. They are not style preferences; each one would
 break a consuming repository silently:
 

@@ -41,7 +41,7 @@ const TOOL_NAME = /^[a-z][a-z0-9_]{0,63}$/;
  * The folder is dropped, so `git/branching-strategy.md` is `branching_strategy`
  * rather than a qualified name. That keeps the short names a caller actually types
  * short, and the cost is that two folders holding the same filename would collide —
- * which `buildContentTools` treats as a startup error rather than letting the second
+ * which `buildContentInstructions` treats as a startup error rather than letting the second
  * file silently shadow the first.
  */
 function toolNameFor(relativePath) {
@@ -106,7 +106,7 @@ function parseFrontmatter(text) {
  *
  * @returns {{ tools: {config: object, handler: Function}[], files: Map<string, string> }}
  */
-function buildContentTools() {
+function buildContentInstructions() {
   const tools = [];
   const files = new Map();
   const claimed = new Map();
@@ -158,11 +158,11 @@ function buildContentTools() {
   return { tools, files };
 }
 
-const { tools, files } = buildContentTools();
+const { tools, files } = buildContentInstructions();
 
-export const CONTENT_TOOLS = Object.freeze(tools);
+export const CONTENT_INSTRUCTIONS = Object.freeze(tools);
 
 /** Tool name -> the set-relative file it serves. The test suite pins both directions. */
-export const TOOL_FILES = files;
+export const INSTRUCTION_FILES = files;
 
-export default CONTENT_TOOLS;
+export default CONTENT_INSTRUCTIONS;

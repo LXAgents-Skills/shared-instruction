@@ -21,12 +21,12 @@ test/
 
 ## The tool surface is generated, not declared
 
-`buildContentTools()` in `src/tools/from-content.js` walks `content/` at import, and for
+`buildContentInstructions()` in `src/instructions/from-content.js` walks `content/` at import, and for
 each `.md` file produces a tool whose name is derived from its filename, whose description
 is that file's frontmatter `description`, and whose handler returns the file's text.
 
 There is no list to keep in step with the set. `src/server.js` spreads the result into
-`TOOL_MODULES` and registers each one, so **adding a file to `content/` adds its tool** and
+`INSTRUCTION_MODULES` and registers each one, so **adding a file to `content/` adds its tool** and
 nothing else has to change. That is the reason this design replaced the previous one, which
 carried a hand-maintained table in `src/constants.js` alongside a matching prose block in
 `src/server/tools.js` — two lists that had to agree, and a boot-time throw when they did not.

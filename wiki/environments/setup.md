@@ -128,7 +128,7 @@ Boot **fails deliberately** when a file under `content/`:
 
 Each would break routing for every consuming repository, so each is a startup error rather
 than a runtime surprise. The fix is usually one line in `NAME_OVERRIDES` in
-`src/tools/from-content.js`.
+`src/instructions/from-content.js`.
 
 ## Related pages
 

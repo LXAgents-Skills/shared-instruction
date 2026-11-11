@@ -23,7 +23,7 @@ It is both the **producer** of the shared set and a **consumer** of it. See
 | `content/` | The published instruction set — every markdown file is served as its own tool, and `automation.md` routes them. | You are changing a convention every repository follows. **This is a release.** |
 | `.agents/` | This repository's own rules, indexes, agent wiki, memory. | You are changing something true only here. |
 | `wiki/` | Human documentation, plus `wiki/logs/` release history. | A person needs to read it. |
-| `src/tools/` | `from-content.js` builds the whole surface, one tool per file; there is no hand-written tool. | Adding or changing a tool. |
+| `src/instructions/` | `from-content.js` builds the whole surface, one tool per file; there is no hand-written tool. | Adding or changing a tool. |
 | `src/server.js` | Builds one `McpServer` and registers every tool; carries the `instructions` text. | Changing the MCP surface. |
 | `src/version.js` | `ROOT`, `CONTENT_DIR`, `VERSION`, `SERVER_NAME`. | Renaming the server or moving the set. |
 | `src/app.js` | The HTTP transport as an application — `POST /mcp`, `GET /healthz`, the 405, the 404, the body limit, the `Host` allow-list, and the token check. Builds and returns; does not listen. | The HTTP surface. |
@@ -62,10 +62,10 @@ Behind both:
 
 * `src/app.js` — the whole HTTP surface as a factory. It does not listen, which is why
   `src/http.js` can be tested and reasoned about without a port.
-* `src/tools/from-content.js` — walks `content/` at import, derives a tool name and
+* `src/instructions/from-content.js` — walks `content/` at import, derives a tool name and
   description per file, and reads each file once into a frozen `Map`. This is the boot-time
   validation gate, and the only module that touches every file in the set.
-* `src/server.js` — `TOOL_MODULES`, the array every registered tool comes from. Add a
+* `src/server.js` — `INSTRUCTION_MODULES`, the array every registered tool comes from. Add a
   module here and its tools appear; nothing else registers anything. Every entry point
   calls `createServer()`, so a change to the surface cannot reach one and miss the other.
 

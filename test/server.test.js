@@ -5,8 +5,8 @@ import test from "node:test";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { CONTENT_DIR } from "../src/version.js";
-import { NAME_OVERRIDES, TOOL_FILES } from "../src/tools/from-content.js";
-import { TOOL_MODULES, createServer } from "../src/server.js";
+import { NAME_OVERRIDES, INSTRUCTION_FILES } from "../src/instructions/from-content.js";
+import { INSTRUCTION_MODULES, createServer } from "../src/server.js";
 
 /** A client connected to a fresh server over an in-memory pipe. */
 async function connect() {
@@ -73,12 +73,12 @@ test("the tool list and the files on disk are a bijection", async () => {
   // tool serving something that is no longer in the set. Together they are what
   // makes "add a file, get a tool" a property rather than a hope.
   const files = (await markdownFiles()).map(([path]) => path);
-  const served = [...TOOL_FILES.values()].sort((a, b) => a.localeCompare(b));
+  const served = [...INSTRUCTION_FILES.values()].sort((a, b) => a.localeCompare(b));
 
   assert.deepEqual(served, files);
 
   assert.equal(
-    TOOL_FILES.size,
+    INSTRUCTION_FILES.size,
     files.length,
     "two files must not derive the same tool name",
   );
@@ -90,7 +90,7 @@ test("every tool name is derived from its own filename, or is an explicit overri
   // tool list, so it has to survive the trip. Folder stripped, `.md` dropped,
   // kebab to snake. The overrides are the documented exceptions, and they are
   // checked here by path so an override cannot drift away from the file it names.
-  for (const [name, path] of TOOL_FILES) {
+  for (const [name, path] of INSTRUCTION_FILES) {
     assert.match(name, /^[a-z][a-z0-9_]{0,63}$/, `${name} is not a usable tool name`);
 
     if (Object.hasOwn(NAME_OVERRIDES, path)) {
@@ -112,7 +112,7 @@ test("every tool name is derived from its own filename, or is an explicit overri
 test("every override names a file in the set", () => {
   // Boot already refuses a stale override; this keeps the property visible in the
   // suite, where a change to the boot check would otherwise go unnoticed.
-  const paths = new Set(TOOL_FILES.values());
+  const paths = new Set(INSTRUCTION_FILES.values());
 
   for (const path of Object.keys(NAME_OVERRIDES)) {
     assert.ok(paths.has(path), `override ${path} matches no file`);
@@ -123,7 +123,7 @@ test("forge pages are named for their forge", () => {
   // Four filename pairs exist on both forges (`api`, `authentication`, `issues`,
   // `repositories`), and the rest (`ci`, `actions`, `releases`) mean nothing without
   // one. A page under a forge folder must say which forge, in the tool name.
-  for (const [name, path] of TOOL_FILES) {
+  for (const [name, path] of INSTRUCTION_FILES) {
     const forge = path.match(/^skills\/(github|gitlab)\//)?.[1];
     if (!forge) continue;
 
@@ -135,10 +135,10 @@ test("forge pages are named for their forge", () => {
 });
 
 test("every tool has a distinct name and a description to route on", () => {
-  const names = TOOL_MODULES.map(({ config }) => config.name);
+  const names = INSTRUCTION_MODULES.map(({ config }) => config.name);
   assert.equal(new Set(names).size, names.length, "tool names must be unique");
 
-  for (const { config } of TOOL_MODULES) {
+  for (const { config } of INSTRUCTION_MODULES) {
     assert.ok(
       config.description && config.description.length > 0,
       `${config.name} needs a description`,
@@ -170,7 +170,7 @@ test("no tool takes an argument", async () => {
 test("every tool returns its own file, whole and with frontmatter", async () => {
   const { client } = await connect();
 
-  for (const [name, path] of TOOL_FILES) {
+  for (const [name, path] of INSTRUCTION_FILES) {
     const text = textOf(await client.callTool({ name, arguments: {} }));
     const onDisk = await readFile(join(CONTENT_DIR, path), "utf8");
 
@@ -189,7 +189,7 @@ test("the whole set is served and nothing is served twice", async () => {
   const { client } = await connect();
 
   let total = 0;
-  for (const [name] of TOOL_FILES) {
+  for (const [name] of INSTRUCTION_FILES) {
     total += textOf(await client.callTool({ name, arguments: {} })).length;
   }
 
@@ -209,7 +209,7 @@ test("the whole set is reachable by tool name", async () => {
   const { client } = await connect();
   const { tools } = await client.listTools();
   const names = new Set(tools.map((tool) => tool.name));
-  const byPath = new Map([...TOOL_FILES].map(([name, path]) => [path, name]));
+  const byPath = new Map([...INSTRUCTION_FILES].map(([name, path]) => [path, name]));
 
   for (const path of [
     "creators/plan-creator.md",
@@ -231,7 +231,7 @@ test("every tool is generated from a file", async () => {
   const { tools } = await client.listTools();
   const names = tools.map((tool) => tool.name).sort();
 
-  assert.deepEqual(names, [...TOOL_FILES.keys()].sort());
+  assert.deepEqual(names, [...INSTRUCTION_FILES.keys()].sort());
 });
 
 // The hub. `automation` is read in every session, so it is the one tool whose size is a recurring
@@ -367,7 +367,7 @@ function pointersFrom(file, tools) {
 
 test("every tool except automation ends in itself", async () => {
   const tools = [];
-  for (const [name, path] of TOOL_FILES) {
+  for (const [name, path] of INSTRUCTION_FILES) {
     const text = await readFile(join(CONTENT_DIR, path), "utf8");
     tools.push({
       name,
@@ -424,7 +424,7 @@ test("every tool that names branches states the release branch form", async () =
 test("no tool shows the retired chore/release branch form", async () => {
   const { client } = await connect();
 
-  for (const [name] of TOOL_FILES) {
+  for (const [name] of INSTRUCTION_FILES) {
     const text = textOf(await client.callTool({ name, arguments: {} }));
 
     // branching_strategy lists it once, as a bad example, so it is allowed to name it.
@@ -479,10 +479,10 @@ test("the server needs no key to answer", async () => {
   assert.ok(text.length > 500, "the set is served without a key");
 });
 
-test("TOOL_MODULES is the whole surface, and every module is well formed", () => {
-  assert.equal(TOOL_MODULES.length, TOOL_FILES.size);
+test("INSTRUCTION_MODULES is the whole surface, and every module is well formed", () => {
+  assert.equal(INSTRUCTION_MODULES.length, INSTRUCTION_FILES.size);
 
-  for (const { config, handler } of TOOL_MODULES) {
+  for (const { config, handler } of INSTRUCTION_MODULES) {
     assert.equal(typeof config.name, "string");
     assert.ok(config.description.length > 0, `${config.name} needs a description`);
     assert.equal(typeof handler, "function");
@@ -495,7 +495,7 @@ test("no tool module can write to the set", async () => {
   const { client } = await connect();
   const { tools } = await client.listTools();
 
-  assert.equal(tools.length, TOOL_FILES.size);
+  assert.equal(tools.length, INSTRUCTION_FILES.size);
   assert.ok(
     CONTENT_DIR.endsWith("content"),
     "the set root is content/, and every read is resolved inside it",

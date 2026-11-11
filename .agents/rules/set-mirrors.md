@@ -27,7 +27,7 @@ This table covers everything that list does not.
 
 ## Not a mirror
 
-[`src/tools/from-content.js`](../../src/tools/from-content.js) reads `content/` and
+[`src/instructions/from-content.js`](../../src/instructions/from-content.js) reads `content/` and
 derives each tool from the file it serves — the name from the path, the description from
 the file's own frontmatter. It restates nothing, which is why it cannot drift from the set
 and needs no entry in the table above. **Prefer that shape.** New code that needs set text

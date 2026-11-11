@@ -80,7 +80,7 @@ they are no longer a fixed set: there are 33 files, and a repository declares in
 `AGENTS.md` which of them it uses.
 
 **Tool counts in `test/http.test.js` are derived, not hardcoded.** They come from
-`TOOL_MODULES.length` — the same array `createServer()` registers from — so adding a file
+`INSTRUCTION_MODULES.length` — the same array `createServer()` registers from — so adding a file
 to `content/` no longer means editing four numbers. That change also removed the friction
 this note used to record: previously the counts were pinned, and a new file failed the
 suite in four places at once.
