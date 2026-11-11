@@ -5,7 +5,7 @@ description: Adding a language-agnostic code-optimization (SRP) tool to the shar
 
 # Code Optimization Tool
 
-## 2026-11-11 — in progress
+## 2026-11-11 — done
 
 **Goal.** The code-optimization analysis the owner asked for by hand in `code-optimization.md`
 becomes a standing instruction, so no one has to request it again.
@@ -24,10 +24,10 @@ through the connector and pick the tool up on their next read with no change.
 
 | # | Title | Branch | PR |
 |---|---|---|---|
-| 1 | Task record | `plan/code-optimization-tool` | — |
-| 2 | Tool and hub row | `feat/code-optimization-tool` | — |
-| 3 | Documentation | `docs/code-optimization-tool` | — |
-| 4 | Release | `release/6.0.4` | — |
+| 1 | Task record | `plan/code-optimization-tool` | [#18](https://github.com/LXAgents-Skills/shared-instruction/pull/18) |
+| 2 | Tool and hub row | `feat/code-optimization-tool` | [#19](https://github.com/LXAgents-Skills/shared-instruction/pull/19) |
+| 3 | Documentation | `docs/code-optimization-tool` | [#20](https://github.com/LXAgents-Skills/shared-instruction/pull/20) |
+| 4 | Release | `release/6.0.4` | [#21](https://github.com/LXAgents-Skills/shared-instruction/pull/21) |
 
 ## Decisions
 
@@ -39,3 +39,5 @@ through the connector and pick the tool up on their next read with no change.
 | D4 | `6.0.4`, a patch, by the owner's standing preference. A new tool would be a minor bump under strict semver. |
 
 ## Task entries
+
+- Landed as `6.0.4`. `content/rules/code-optimization.md`, its hub row, an `AGENTS.md` row. 49 tools, the longest id 60 characters. Tests: 74, all passing.
