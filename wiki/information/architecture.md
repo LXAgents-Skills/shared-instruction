@@ -33,7 +33,7 @@ carried a hand-maintained table in `src/constants.js` alongside a matching prose
 
 ## Content is read once, at boot
 
-Every file is read into a `Map` when the process starts, keyed by tool name. A tool call is
+Every file is read into a `Map` when the process starts, keyed by tool name. An instruction call is
 then a map lookup: no filesystem I/O on the read path, and no work a slow client can make
 another client wait behind.
 
@@ -103,7 +103,7 @@ of it would corrupt the stream.
 
 **No tool takes a path**, so a caller has nothing to traverse with. That is the guard, and it
 is structural rather than a check: the set is read once at boot from a fixed directory, a
-tool call is a map lookup, and nothing opens a file named by a caller. There used to be a
+instruction call is a map lookup, and nothing opens a file named by a caller. There used to be a
 path-taking read and a check that ran before any filesystem call; both went with the one tool
 that reached them.
 
@@ -132,5 +132,5 @@ which is what stops an orphan holding the port for the next run.
 ## Related pages
 
 - [Overview](overview.md) — what this serves and why.
-- [MCP surface](../reference/mcp-surface.md) — the tool surface, and what is not exposed.
+- [Skill MCP surface](../reference/mcp-surface.md) — the tool surface, and what is not exposed.
 - [Environment variables](../environments/env.md) — the five the HTTP transport reads.

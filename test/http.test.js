@@ -218,7 +218,7 @@ async function startServer({ entry = ENTRY_HTTP, env = {} } = {}) {
   // A server that exited quietly is a failure to report with its own output attached, not
   // a server to test against.
   const ready = await Promise.race([
-    waitForOutput("serving over http").then((ok) => ({ ok })),
+    waitForOutput("serving Skill MCP over http").then((ok) => ({ ok })),
     exited.then((exit) => ({ exit })),
   ]);
 
@@ -318,7 +318,7 @@ test("the startup line names the interface it bound", async () => {
     // The harness binds loopback, so the line has to say loopback. It is the only place the
     // process reports what it actually bound rather than what it was asked to bind, and a
     // container operator reads it first.
-    assert.match(output(), /serving over http on :\d+\/mcp \(127\.0\.0\.1\)/);
+    assert.match(output(), /serving Skill MCP over http on :\d+\/mcp \(127\.0\.0\.1\)/);
   });
 });
 
@@ -775,7 +775,7 @@ test("MCP_TRANSPORT=http reaches the same server through src/index.js", async ()
   await withServer(
     { entry: ENTRY_INDEX, env: { MCP_TRANSPORT: "http" } },
     async ({ url, stdout, output }) => {
-      assert.match(output(), /serving over http on :\d+\/mcp/);
+      assert.match(output(), /serving Skill MCP over http on :\d+\/mcp/);
 
       const client = await connect(url);
       openClients.add(client);
@@ -835,7 +835,7 @@ test("node src/index.js still speaks stdio and writes nothing to stdout", async 
     // arrived — but "would have" is a claim about a failure that did not happen, and this
     // costs one line.
     assert.doesNotMatch(stderr, /forking \d+ HTTP workers/);
-    assert.doesNotMatch(stderr, /serving over http/);
+    assert.doesNotMatch(stderr, /serving Skill MCP over http/);
   } finally {
     await client.close();
   }
@@ -909,7 +909,7 @@ test("MCP_CLUSTER_WORKERS=1 forks nothing and serves on its own", async () => {
     async ({ output, countOutput, url }) => {
       assert.match(output(), /MCP_CLUSTER_WORKERS is 1, so no worker is forked/);
       assert.doesNotMatch(output(), /forking \d+ HTTP workers/);
-      assert.equal(countOutput("serving over http"), 1, "one process, one startup line");
+      assert.equal(countOutput("serving Skill MCP over http"), 1, "one process, one startup line");
 
       // Still a working server: disabling the fork must not disable the transport.
       const client = await connect(url);
@@ -934,8 +934,8 @@ test("MCP_CLUSTER_WORKERS=2 binds the port from two separate workers", async () 
       // through the cluster's shared handle, because two independent `listen` calls on one
       // port would be EADDRINUSE. This is the assertion that the fork is real.
       assert.ok(
-        await waitForCount("serving over http", 2),
-        `expected two workers to bind, saw ${countOutput("serving over http")}\n--- output ---\n${output()}`
+        await waitForCount("serving Skill MCP over http", 2),
+        `expected two workers to bind, saw ${countOutput("serving Skill MCP over http")}\n--- output ---\n${output()}`
       );
 
       // And the primary claimed no port of its own.
@@ -962,7 +962,7 @@ test("concurrent tool calls stay isolated when they cross a process boundary", a
   await withServer(
     { env: { MCP_CLUSTER_WORKERS: "2" } },
     async ({ waitForCount, url }) => {
-      assert.ok(await waitForCount("serving over http", 2), "the fork did not happen");
+      assert.ok(await waitForCount("serving Skill MCP over http", 2), "the fork did not happen");
 
       const tools = ["commit_conventions", "plan_creator", "versioning"];
       const clients = await Promise.all(tools.map(() => connect(url)));
@@ -1006,7 +1006,7 @@ test(
     });
 
     try {
-      assert.ok(await waitForCount("serving over http", 2), "the fork did not happen");
+      assert.ok(await waitForCount("serving Skill MCP over http", 2), "the fork did not happen");
 
       const exited = new Promise((resolveExit) => child.once("exit", resolveExit));
 
@@ -1049,7 +1049,7 @@ test(
     await withServer(
       { env: { MCP_CLUSTER_WORKERS: "2" } },
       async ({ child, output, waitForCount }) => {
-        assert.ok(await waitForCount("serving over http", 2), "the fork did not happen");
+        assert.ok(await waitForCount("serving Skill MCP over http", 2), "the fork did not happen");
 
         const exited = new Promise((resolveExit) =>
           child.once("exit", (code, signal) => resolveExit({ code, signal }))
@@ -1090,7 +1090,7 @@ test(
     await withServer(
       { env: { MCP_CLUSTER_WORKERS: "2" } },
       async ({ child, output, waitForCount }) => {
-        assert.ok(await waitForCount("serving over http", 2), "the fork did not happen");
+        assert.ok(await waitForCount("serving Skill MCP over http", 2), "the fork did not happen");
 
         const exited = new Promise((resolveExit) =>
           child.once("exit", (code) => resolveExit({ code }))
@@ -1139,7 +1139,7 @@ test(
     await withServer(
       { env: { MCP_CLUSTER_WORKERS: "2" } },
       async ({ child, output, waitForCount, waitForOutput, url }) => {
-        assert.ok(await waitForCount("serving over http", 2), "the fork did not happen");
+        assert.ok(await waitForCount("serving Skill MCP over http", 2), "the fork did not happen");
 
         const workers = await childrenOf(child.pid);
         assert.equal(workers.length, 2, `expected two workers, found ${workers.join(", ")}`);
@@ -1156,7 +1156,7 @@ test(
           `the primary did not report the death\n--- output ---\n${output()}`
         );
 
-        assert.ok(await waitForCount("serving over http", 3), "the replacement did not bind the port");
+        assert.ok(await waitForCount("serving Skill MCP over http", 3), "the replacement did not bind the port");
 
         const after = await childrenOf(child.pid);
         assert.equal(after.length, 2, "the pool is back to two");
@@ -1402,7 +1402,7 @@ test("HTTP refuses to start without a usable token", async () => {
     assert.equal(code, 1, `${name}: it must exit 1, got ${code}\n${output}`);
     assert.match(output, message, name);
     assert.match(output, /openssl rand -hex 32/, `${name}: the message must say how to fix it`);
-    assert.doesNotMatch(output, /serving over http/, `${name}: it must not have bound the port`);
+    assert.doesNotMatch(output, /serving Skill MCP over http/, `${name}: it must not have bound the port`);
     if (token.trim()) assert.ok(!output.includes(token), `${name}: the value must not be echoed`);
   }
 });

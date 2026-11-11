@@ -1,4 +1,4 @@
-# MCP Surface
+# Skill MCP Surface
 
 Everything `lxagents-shared-instruction` exposes.
 

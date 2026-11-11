@@ -1,6 +1,6 @@
 # shared-instruction
 
-The MCP server that delivers the **LXAgents shared agent instruction set**. A
+The Skill MCP server that delivers the **LXAgents shared agent instruction set**. A
 repository connects it as a connector and reads the conventions it needs — branching,
 commits, pull requests, task workflow, the creators, the directory architecture —
 instead of cloning or vendoring a copy of them.
@@ -28,7 +28,7 @@ instead of cloning or vendoring a copy of them.
   asserts that every tool's schema has no properties and no required fields, so a future
   tool that grows an argument has to be added deliberately.
 - **Read once, at boot.** The whole set is read into a frozen map when the process starts.
-  A tool call is a map lookup — no filesystem I/O on the read path — and a malformed set
+  An instruction call is a map lookup — no filesystem I/O on the read path — and a malformed set
   fails the process at startup rather than returning a wrong answer to the first caller
   that needed the file.
 - **The description is the routing key.** A tool's description is that file's own
@@ -137,7 +137,7 @@ exits unless `MCP_AUTH_TOKEN` is set, and stdio never needs it. Details in
 
 - [Overview](wiki/information/overview.md) — what this serves and why it is a server.
 - [Architecture](wiki/information/architecture.md) — how the tool surface is built.
-- [MCP surface](wiki/reference/mcp-surface.md) — every tool, and what the server does not expose.
+- [Skill MCP surface](wiki/reference/mcp-surface.md) — every tool, and what the server does not expose.
 - [Local setup](wiki/environments/setup.md) — running and testing it.
 - [Docker](wiki/environments/docker.md) — building and running the image.
 - [Security model](wiki/security/security-model.md) — trust boundaries, and what is deliberately not protected.

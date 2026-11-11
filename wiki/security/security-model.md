@@ -7,7 +7,7 @@ one keeps its own model, and they are deliberately not merged.
 ## What this project actually is, in security terms
 
 A read-only publisher. It reads markdown from `content/` once at boot into a frozen map and
-serves it over MCP. There is no database, no user accounts, and nothing persisted at
+serves it over Skill MCP. There is no database, no user accounts, and nothing persisted at
 runtime.
 
 **It has two transports, and one of them is a network listener.** `src/index.js` speaks
@@ -44,7 +44,7 @@ distribution path is a review either.
 
 | Surface | Exposure | What guards it |
 |---|---|---|
-| Tool calls | Whoever can spawn the process (stdio), or whoever holds the token (HTTP) | **Nothing beyond that, and that is the design.** Every tool is read-only and takes no argument. There is no path, no verb, and no target a caller can supply. |
+| Instruction calls | Whoever can spawn the process (stdio), or whoever holds the token (HTTP) | **Nothing beyond that, and that is the design.** Every tool is read-only and takes no argument. There is no path, no verb, and no target a caller can supply. |
 | Path reads | None | No tool takes a path and nothing opens a file a caller named. The set is read once at boot from a fixed directory. Detailed below. |
 | **The HTTP listener** | **Anyone who can reach the port** | **A bearer token**, `MCP_AUTH_TOKEN`: every route except `GET /healthz` refuses without it, and the process will not start without one. Optional `Host` allow-list via `MCP_ALLOWED_HOSTS`, **off unless set**. No TLS and no rate limiting — those belong to whatever fronts the port. Detailed below. |
 | In-flight requests | Anyone who holds the token | One `McpServer` per request, never shared, closed when its response closes. **The set of them is per-request closers, not a map of live sessions** — a stateless transport has no id to key on and keeps nothing between requests, so there is no store to fill. |
@@ -171,7 +171,7 @@ now. See *Attack surface* above, and the per-request row in it.
 ## No path is read from a caller
 
 The server holds no function that takes caller-influenced input. The set is read once at boot
-from a fixed directory, a tool call is a map lookup, and nothing opens a file a caller named.
+from a fixed directory, an instruction call is a map lookup, and nothing opens a file a caller named.
 
 - **The guard is structural.** No tool takes a `path`, so a caller has nothing to traverse
   with. There used to be one path-taking read, reached by one tool with a constant path, and
