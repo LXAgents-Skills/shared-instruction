@@ -1,7 +1,9 @@
 # Architecture
 
-Plain JavaScript (Node ESM), no build step. Two dependencies: the MCP SDK, and `express`
-for the HTTP transport. The whole server is nine files.
+TypeScript (Node ESM, `strict`), compiled by `tsc` from `src/` to `dist/`. `npm install` builds it
+through the `prepare` script, so a fresh clone is runnable after one command, and `dist/` is never
+committed. Three runtime dependencies: the MCP SDK, `zod`, and `express` for the HTTP transport.
+The whole server is eight files.
 
 ```
 content/                      the instruction set — 32 markdown files
@@ -28,11 +30,11 @@ test/
 
 ## The tool surface is generated, not declared
 
-`buildContentInstructions()` in `src/instructions/from-content.js` walks `content/` at import, and for
+`buildContentInstructions()` in `src/instructions/from-content.ts` walks `content/` at import, and for
 each `.md` file produces a tool whose name is derived from its filename, whose description
 is that file's frontmatter `description`, and whose handler returns the file's text.
 
-There is no list to keep in step with the set. `src/server.js` spreads the result into
+There is no list to keep in step with the set. `src/server.ts` spreads the result into
 `INSTRUCTION_MODULES` and registers each one, so **adding a file to `content/` adds its tool** and
 nothing else has to change. That is the reason this design replaced the previous one, which
 carried a hand-maintained table in `src/constants.js` alongside a matching prose block in
@@ -61,26 +63,26 @@ cheap; what they share is the already-loaded map.
 
 ## Two transports
 
-`src/index.js` connects `StdioServerTransport`. `src/http.js` builds the express
-application in `src/app.js` and binds a port. Both call the same `createServer()`, so the
+`src/index.ts` connects `StdioServerTransport`. `src/http.ts` builds the express
+application in `src/app.ts` and binds a port. Both call the same `createServer()`, so the
 surface they expose is identical by construction rather than by discipline — a change to
 the tool set cannot reach one transport and miss the other.
 
-`src/index.js` reaches `src/http.js` on `MCP_TRANSPORT=http`, by dynamic import. It is
-dynamic because `src/index.js` is the stdio entry point and stdout there *is* the JSON-RPC
+`src/index.ts` reaches `src/http.ts` on `MCP_TRANSPORT=http`, by dynamic import. It is
+dynamic because `src/index.ts` is the stdio entry point and stdout there *is* the JSON-RPC
 channel: a static import would load express into that process whether or not HTTP was
 selected. The two files stay separate because `package.json`'s `start:http` and the
-`Dockerfile` both name `src/http.js` and neither may change — so the HTTP path has one more
+`Dockerfile` both name its compiled form `dist/http.js` and neither may change — so the HTTP path has one more
 hop than the other four servers in the organization, and the reason is a file that is not
 allowed to move.
 
-**HTTP off loopback requires a bearer token; stdio and HTTP on loopback do not.** `src/auth.js` reads
-`MCP_AUTH_TOKEN` and `src/app.js` mounts its middleware after the `Host` allow-list and ahead of
+**HTTP off loopback requires a bearer token; stdio and HTTP on loopback do not.** `src/auth.ts` reads
+`MCP_AUTH_TOKEN` and `src/app.ts` mounts its middleware after the `Host` allow-list and ahead of
 the body parser and every route, with `GET /healthz` the one exemption. `createApp` throws
-without a usable token unless built with `requireToken: false` (which `src/http.js` does only
-for a loopback `HOST`, adding a `localhost` `Host` allow-list), and `src/http.js` checks first in the primary so a missing one is a single
+without a usable token unless built with `requireToken: false` (which `src/http.ts` does only
+for a loopback `HOST`, adding a `localhost` `Host` allow-list), and `src/http.ts` checks first in the primary so a missing one is a single
 line and exit code `1` rather than the same line from each worker and a respawn loop. The stdio
-path never imports `src/auth.js` and never reads the variable. The reasoning is in the
+path never imports `src/auth.ts` and never reads the variable. The reasoning is in the
 [security model](../security/security-model.md).
 
 **The HTTP transport is stateless.** `POST /mcp` builds a fresh `McpServer` and a fresh
@@ -88,10 +90,10 @@ path never imports `src/auth.js` and never reads the variable. The reasoning is 
 nothing between one request and the next. The SSE implementation this replaced held a
 `Map` of live sessions keyed by a connection id the client was handed, and the map was the
 state. **There is no equivalent store here and nothing replacing it** — the only thing a
-shutdown needs to know is what is running right now, so `src/http.js` keeps a `Set` of
+shutdown needs to know is what is running right now, so `src/http.ts` keeps a `Set` of
 per-request closers, and that is the whole of it.
 
-There is now a worker pool. `src/http.js` forks `os.availableParallelism()` HTTP workers
+There is now a worker pool. `src/http.ts` forks `os.availableParallelism()` HTTP workers
 unless `MCP_CLUSTER_WORKERS` says otherwise, and every worker binds the same `PORT` through
 the cluster's shared handle — the kernel's round-robin scheduler does the distribution, so
 no `SO_REUSEPORT` is set by hand and no sticky-session affinity is written. **The primary

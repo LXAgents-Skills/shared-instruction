@@ -79,3 +79,15 @@ answers); `docker build` itself could not run here, because Docker Hub answered 
 
 Left: `test/http.cluster.test.ts` reads `transport.stdout`, which `StdioClientTransport` does
 not have, so that capture has always been a no-op. Kept as it was, with a cast and a comment.
+
+### Task 4 — docs/typescript
+
+Landed: every page that named a source file now names its `.ts` path, and every runnable path
+(a client config, `node … http.js`, the Docker override) names `dist/`. README, `AGENTS.md`,
+`architecture.md`, `setup.md`, `env.md`, `docker.md`, `install-as-local-mcp.md`,
+`connect-a-repository.md`, `mcp-surface.md`, `security-model.md`, the repository map,
+`security-boundaries.md`, `content-publishing.md` and `set-mirrors.md`. `.agents/rules/repository.md`
+now describes the TypeScript stack (D1–D3) in place of "no build step, no TypeScript", keeps
+"no compiled output committed", and adds "no `any`". `install-as-local-mcp.md` said 19 passing
+tests; it says 74. Release logs, memory and the logs index are history and were left as written.
+Nothing under `content/` changed.

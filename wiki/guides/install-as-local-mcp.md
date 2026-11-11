@@ -61,7 +61,9 @@ npm install
 npm test
 ```
 
-Node 20 or newer. There is no build step. `npm test` reports **19 passing** — if the
+Node 20 or newer. `npm install` also compiles the TypeScript sources into `dist/`, through the
+`prepare` script, so there is no separate build step to remember. `npm test` builds, type-checks
+and reports **74 passing** — if the
 registry refuses to start, the error names the file and the invariant it broke.
 
 ## 3. Ignore it — do this before your next commit
@@ -87,7 +89,7 @@ has to be updated.
   "mcpServers": {
     "lxagents-shared-instruction": {
       "command": "node",
-      "args": ["src/index.js"],
+      "args": ["dist/index.js"],
       "cwd": "./mcps/LXAgents-Skills/shared-instruction"
     }
   }
@@ -150,7 +152,7 @@ block. If it is not, install it locally:
     cd ./mcps/LXAgents-Skills/shared-instruction && npm install
 
 Then register it as a stdio Skill MCP server named `lxagents-shared-instruction`, with
-`command: node`, `args: ["src/index.js"]`, and
+`command: node`, `args: ["dist/index.js"]`, and
 `cwd: ./mcps/LXAgents-Skills/shared-instruction`. A host serving it over HTTP registers
 `type: http`, `url: https://<host>/mcp` and an `Authorization: Bearer <token>` header
 instead, under the same name; without the header every request is a `401`.

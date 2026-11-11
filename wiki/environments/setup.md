@@ -9,18 +9,21 @@ There is no CLI. There is a container image — see [Docker](docker.md).
 
 ## Requirements
 
-Node.js 20 or newer. There is no build step — the server is plain JavaScript (ESM).
+Node.js 20 or newer. The server is strict TypeScript (ESM) in `src/`, compiled by `tsc` to
+`dist/`. `npm install` runs that build through the `prepare` script, `npm run build` runs it by
+hand, and `npm test` runs it first (`pretest`), then type-checks `src/` and `test/` together.
+`dist/` is not committed.
 
 ```bash
 npm install
 npm test
 ```
 
-The suite is six files and a shared harness. `test/server.test.js` drives a real MCP client over an in-memory
+The suite is six files and a shared harness. `test/server.test.ts` drives a real MCP client over an in-memory
 transport and covers the frontmatter contract, the file-to-tool bijection in both
 directions, name derivation and overrides, uniqueness and descriptions, the zero-argument
 claim, byte-for-byte payload fidelity, total-served equality, reachability, the `lxagents_skills_shared_instruction_automation`
-hub, that no tool points at another, and the read-only claim. The five `test/http.*.test.js` files drive
+hub, that no tool points at another, and the read-only claim. The five `test/http.*.test.ts` files drive
 a real client against a real listening process and covers the HTTP transport: the two
 transports agreeing, `/healthz`, the 405 and the 404, the SSE routes being **gone**, the
 4 MB body limit, concurrent requests, shutdown ordering, the `Host` allow-list, the startup
@@ -41,7 +44,7 @@ client at it. From a checkout:
   "mcpServers": {
     "lxagents-shared-instruction": {
       "command": "node",
-      "args": ["src/index.js"],
+      "args": ["dist/index.js"],
       "cwd": "/path/to/shared-instruction"
     }
   }
@@ -61,7 +64,7 @@ From npm, the package exposes that same file as a bin, so no checkout is needed:
 }
 ```
 
-There is a remote form as well, for a server running at a fixed address. `src/http.js`
+There is a remote form as well, for a server running at a fixed address. `src/http.ts`
 serves the same tools at `POST /mcp`; see
 [Connect a repository](../guides/connect-a-repository.md).
 
@@ -82,7 +85,7 @@ throwaway token for a throwaway run; for anything a client will reach, generate 
 and give the same value to the clients. See [Environment variables](env.md).
 
 The two entry points differ only in transport. Same tools, same content, same
-read-only surface. `MCP_TRANSPORT=http node src/index.js` is the same server reached the
+read-only surface. `MCP_TRANSPORT=http node dist/index.js` is the same server reached the
 other way round, which is how the other servers in the organization select a transport.
 
 `start:http` forks one worker per CPU. `MCP_CLUSTER_WORKERS=1` makes it a single process,
@@ -100,16 +103,16 @@ call it. With no prompts or resources, the tool list is the whole surface.
 
 ### stdout belongs to the protocol — on stdio
 
-On the stdio transport, stdout **is** the JSON-RPC channel. Nothing in `src/index.js`
+On the stdio transport, stdout **is** the JSON-RPC channel. Nothing in `src/index.ts`
 writes to it: there is no logger module, and no `console.log` on that path. A
 `console.log` added there would corrupt the protocol stream, which is worth knowing before
 adding one.
 
-**`src/http.js` used to be the exception, and no longer is.** It logged its startup lines to
+**`src/http.ts` used to be the exception, and no longer is.** It logged its startup lines to
 stdout, on the reasoning that the HTTP process speaks JSON-RPC over a socket rather than a
 pipe, so stdout was an ordinary logging channel there. That was true and is still true —
-and it stopped mattering when `src/index.js` gained `MCP_TRANSPORT=http` and began reaching
-`src/http.js` by dynamic import. The same file is now one hop away from a process whose
+and it stopped mattering when `src/index.ts` gained `MCP_TRANSPORT=http` and began reaching
+`src/http.ts` by dynamic import. The same file is now one hop away from a process whose
 stdout is a protocol stream, so **both HTTP entry points log to stderr**, and the rule is
 one rule rather than an exception with a footnote. A test asserts stdout stays empty.
 
@@ -131,7 +134,7 @@ Boot **fails deliberately** when a file under `content/`:
 
 Each would break routing for every consuming repository, so each is a startup error rather
 than a runtime surprise. The fix is usually one line in `NAME_OVERRIDES` in
-`src/instructions/from-content.js`.
+`src/instructions/from-content.ts`.
 
 ## Related pages
 

@@ -18,7 +18,7 @@ copies. This is the producer's version of the copy problem.
 | Mirror | What it reproduces |
 |---|---|
 | [`AGENTS.md`](../../AGENTS.md) (repository root) | The **Shared instruction tools** declaration block (the `lxagents_skills_shared_instruction_automation` row and the six conventions it names); the inline gates; and the *Using the connector* section — the read sequence, the transport, and the unavailable-connector obligation. The trigger table for the rest of the set is **not** copied: [`content/automation.md`](../../content/automation.md) is the one authority for when each tool fires. This repository consumes its own set, so its entry point goes stale exactly like a consumer's. |
-| [`src/server.js`](../../src/server.js) | The `instructions` string restates the routing model — read `lxagents_skills_shared_instruction_automation` once per session, call nothing else until its condition is true, one file per tool — in the text every client receives at `initialize`. A client that reads only that gets the model without the set. |
+| [`src/server.ts`](../../src/server.ts) | The `instructions` string restates the routing model — read `lxagents_skills_shared_instruction_automation` once per session, call nothing else until its condition is true, one file per tool — in the text every client receives at `initialize`. A client that reads only that gets the model without the set. |
 
 The discovery-protocol block has its own bounded copy list, owned by
 [`content/rules/discovery-protocol.md`](../../content/rules/discovery-protocol.md) §F. It is
@@ -27,7 +27,7 @@ This table covers everything that list does not.
 
 ## Not a mirror
 
-[`src/instructions/from-content.js`](../../src/instructions/from-content.js) reads `content/` and
+[`src/instructions/from-content.ts`](../../src/instructions/from-content.ts) reads `content/` and
 derives each tool from the file it serves — the name from the path, the description from
 the file's own frontmatter. It restates nothing, which is why it cannot drift from the set
 and needs no entry in the table above. **Prefer that shape.** New code that needs set text

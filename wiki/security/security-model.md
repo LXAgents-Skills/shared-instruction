@@ -10,8 +10,8 @@ A read-only publisher. It reads markdown from `content/` once at boot into a fro
 serves it over Skill MCP. There is no database, no user accounts, and nothing persisted at
 runtime.
 
-**It has two transports, and one of them is a network listener.** `src/index.js` speaks
-stdio, which is a pipe a client spawns. `src/http.js` speaks stateless HTTP, which binds a
+**It has two transports, and one of them is a network listener.** `src/index.ts` speaks
+stdio, which is a pipe a client spawns. `src/http.ts` speaks stateless HTTP, which binds a
 port. The second is newer than this page's previous revision, and it changes the shape of
 everything below: the interesting risk is still not data theft, because the content is
 public by design, but a listener adds a reachability question that a pipe does not have. The
@@ -49,7 +49,7 @@ distribution path is a review either.
 | **The HTTP listener** | **Anyone who can reach the port** | **A bearer token**, `MCP_AUTH_TOKEN`: every route except `GET /healthz` refuses without it, and off loopback the process will not start without one. On loopback with no token, the bind keeps other machines out and a `Host` allow-list of `localhost`, `127.0.0.1` and `[::1]` keeps out DNS rebinding. Otherwise an optional `Host` allow-list via `MCP_ALLOWED_HOSTS`, **off unless set**. No TLS and no rate limiting — those belong to whatever fronts the port. Detailed below. |
 | In-flight requests | Anyone who holds the token | One `McpServer` per request, never shared, closed when its response closes. **The set of them is per-request closers, not a map of live sessions** — a stateless transport has no id to key on and keeps nothing between requests, so there is no store to fill. |
 | Process startup | Anyone who can spawn it | Reads `package.json` and walks `content/`. Malformed content throws and the process exits rather than serving something wrong. |
-| Dependency install | Build time | `npm install` runs lifecycle scripts. `npm ci --ignore-scripts` is the safer form for a build you do not control. |
+| Dependency install | Build time | `npm install` runs lifecycle scripts, including this package's own `prepare`, which runs `tsc` to build `dist/`. `npm ci --ignore-scripts` is the safer form for a build you do not control; follow it with `npm run build`. |
 | Publishing | Anyone with npm credentials | Publishing changes what every consumer reads. Treat a release as a security-relevant action, because it is one. |
 
 ## The HTTP listener
@@ -68,7 +68,7 @@ what a caller who clones the repository and runs it locally gets. There is no pr
 operation to reach and no state to corrupt. The listener widens who can ask, not what they
 can do once they have — and it now asks them for one credential before it answers.
 
-**And the worker pool does not widen it either.** `src/http.js` forks one process per CPU by
+**And the worker pool does not widen it either.** `src/http.ts` forks one process per CPU by
 default, but every worker binds the same port and serves the same 33 read-only tools, so the
 pool multiplies capacity rather than surface. Two things follow that are worth stating:
 there is still nothing shared between workers to corrupt — each builds its own `McpServer`
@@ -214,7 +214,7 @@ six environment variables, and the other five are not credentials:
 | `HOST` | `0.0.0.0` | The interface to bind. An address. A loopback address makes the token optional. |
 | `MCP_ALLOWED_HOSTS` | unset | Hostnames permitted in the `Host` header. **Off when unset.** |
 | `MCP_AUTH_TOKEN` | **none** | **A secret.** The bearer token every HTTP request except `GET /healthz` must carry. At least 32 characters; HTTP off loopback will not start without it; stdio never reads it. |
-| `MCP_TRANSPORT` | `stdio` | Which transport `src/index.js` speaks. A word. |
+| `MCP_TRANSPORT` | `stdio` | Which transport `src/index.ts` speaks. A word. |
 | `MCP_CLUSTER_WORKERS` | CPU count | How many HTTP worker processes to fork. A number. |
 
 The token is held by whoever deploys the service and by each client, and by nothing else. It
@@ -245,13 +245,14 @@ this repository: there is no host, no hostname, and no registry image, and the
 documentation says "can be deployed" rather than "is deployed" for that reason.
 
 **A `Dockerfile` exists and can do either.** The image pins the toolchain, installs from
-the lockfile with `--ignore-scripts`, and ends as `USER node`. It declares `EXPOSE 3000`
+the lockfile with `--ignore-scripts` in both of its stages (the first compiles `dist/`, the
+second carries it without the compiler), and ends as `USER node`. It declares `EXPOSE 3000`
 and its default entrypoint is still the stdio server; the HTTP one is a command away:
 
 ```bash
 docker run --rm -i lxagents-shared-instruction:6.0.4                     # stdio
 docker run --rm -p 3000:3000 -e MCP_AUTH_TOKEN lxagents-shared-instruction:6.0.4 \
-  node src/http.js                                                        # HTTP, token required
+  node dist/http.js                                                        # HTTP, token required
 ```
 
 A container here is both a way to run the server without Node 20 and, with that second
