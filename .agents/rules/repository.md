@@ -102,8 +102,8 @@ Full orientation: [`../wiki/context/repository-map.md`](../wiki/context/reposito
 Every behavioural change ships with a test in `test/`, using `node:test` and
 `node:assert/strict`. The suite must pass before any commit.
 
-There are two test files. `test/server.test.js` is the surface suite; `test/http.test.js`
-covers the HTTP transport against a real listening process, because the things that go
+`test/server.test.js` is the surface suite. The `test/http.*.test.js` files, one per subject
+with a shared harness in `test/helpers/http-harness.js`, cover the HTTP transport against a real listening process, because the things that go
 wrong there are about sockets and sessions and do not reproduce on an in-memory transport.
 Prefer a test that pins an invariant over one that pins a string: the useful ones here
 assert that files and tools are a bijection in both directions, that no tool takes an

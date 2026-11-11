@@ -79,7 +79,7 @@ single 31,000-character `agents_auto_activation` call. The four mandatory ones a
 they are no longer a fixed set: there are 33 files, and a repository declares in its own
 `AGENTS.md` which of them it uses.
 
-**Tool counts in `test/http.test.js` are derived, not hardcoded.** They come from
+**Tool counts in the HTTP tests are derived, not hardcoded.** They come from
 `INSTRUCTION_MODULES.length` — the same array `createServer()` registers from — so adding a file
 to `content/` no longer means editing four numbers. That change also removed the friction
 this note used to record: previously the counts were pinned, and a new file failed the

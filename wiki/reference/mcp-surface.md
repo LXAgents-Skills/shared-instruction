@@ -163,10 +163,10 @@ uniqueness and descriptions, the zero-argument claim, byte-for-byte fidelity, to
 equality, reachability, the hub (first, total, honest and small), the release-branch wording,
 that no tool points at another, and the read-only claim.
 
-`test/http.test.js` is the HTTP counterpart, over a real client against a real listening process and a
+The `test/http.*.test.js` files are the HTTP counterpart, one per subject (routes, hosts, limits, cluster, auth) with a shared harness in `test/helpers/http-harness.js`, over a real client against a real listening process and a
 real cluster rather than an in-memory transport, because the things that can go wrong on the
-HTTP path are about sockets and process boundaries and do not reproduce in memory. It
-asserts the two transports expose the same tools and return byte-identical payloads, that
+HTTP path are about sockets and process boundaries and do not reproduce in memory. Together they
+assert the two transports expose the same tools and return byte-identical payloads, that
 concurrent requests do not cross-talk — in one process or across two — that `/healthz`
 answers, that any other method on `/mcp` is a 405 and any other path a 404, that the routes
 the SSE transport used are **gone** rather than assumed to be, that the drain reports
