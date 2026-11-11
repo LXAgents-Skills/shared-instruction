@@ -1,4 +1,5 @@
 import express from "express";
+import type { ErrorRequestHandler, Express } from "express";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { hostHeaderValidation } from "@modelcontextprotocol/sdk/server/middleware/hostHeaderValidation.js";
 import { configuredToken, requireBearerToken, tokenProblem } from "./auth.js";
@@ -10,15 +11,15 @@ import { SERVER_NAME, VERSION } from "./version.js";
  * The HTTP transport, as an application.
  *
  * This module builds an express app and returns it. **It does not listen** —
- * `src/http.js` owns the port. A file that both builds the app and binds a port cannot
+ * `src/http.ts` owns the port. A file that both builds the app and binds a port cannot
  * be reasoned about, or tested, without binding one.
  *
  * The surface is deliberately narrow: `POST /mcp` and `GET /healthz`, a JSON-RPC 405 for
  * any other method on `/mcp`, a JSON-RPC 404 for everything else, and one answer for a
  * body the transport cannot read. **Everything except `GET /healthz` needs the bearer
- * token** — see `src/auth.js` for why, and `createApp` for where. Nothing here is a second
+ * token** — see `src/auth.ts` for why, and `createApp` for where. Nothing here is a second
  * source of truth about the tool
- * list — `createServer()` is the same factory `src/index.js` uses on stdio, and it
+ * list — `createServer()` is the same factory `src/index.ts` uses on stdio, and it
  * returns a fresh `McpServer` per call, so each request gets its own. Sharing one across
  * requests would be a real bug: `McpServer` holds per-connection state.
  */
@@ -56,9 +57,8 @@ export const LOOPBACK_HOSTNAMES = Object.freeze(["localhost", "127.0.0.1", "[::1
  * than an absent one, and this server serves public markdown either way, so the absence
  * is reported on startup rather than papered over with a default list.
  *
- * @returns {string[]}
  */
-export function allowedHosts() {
+export function allowedHosts(): string[] {
   const raw = process.env.MCP_ALLOWED_HOSTS;
   if (!raw) return [];
   return raw
@@ -67,10 +67,29 @@ export function allowedHosts() {
     .filter(Boolean);
 }
 
+/** A closer that ends one in-flight `/mcp` request. */
+export type RequestCloser = () => void;
+
+/** What `createApp` can be told. Every field is optional; see `createApp` for each. */
+export interface AppOptions {
+  inFlight?: Set<RequestCloser>;
+  token?: string;
+  requireToken?: boolean;
+}
+
+/**
+ * The part of an error from `express.json` this module reads. The body parser tags what went
+ * wrong in `type`; any other error reaches the handler as itself.
+ */
+interface BodyParserError {
+  type?: string;
+  message?: string;
+}
+
 /**
  * Build the HTTP application.
  *
- * @param {{ inFlight?: Set<() => void>, token?: string }} [options] — `inFlight`, when given,
+ * @param options `inFlight`, when given,
  *   receives one closer per in-flight `/mcp` request, so the entry point can drain them
  *   deliberately on shutdown rather than dropping them when the process exits. This is what
  *   replaced the SSE session map: the map counted *connections*, which on a stateless
@@ -81,12 +100,15 @@ export function allowedHosts() {
  *   `MCP_AUTH_TOKEN`, read now. **By default there is no way to build this app without one**: a
  *   missing or too-short token throws, so an unauthenticated HTTP server cannot come from
  *   forgetting an option. `requireToken: false` is the one way to build it open, and only when
- *   no token is given; `src/http.js` passes it for a loopback bind, where only this machine can
- *   connect. `src/http.js` checks first, in the primary, to report it once instead of once per
+ *   no token is given; `src/http.ts` passes it for a loopback bind, where only this machine can
+ *   connect. `src/http.ts` checks first, in the primary, to report it once instead of once per
  *   worker.
- * @returns {import("express").Express}
  */
-export function createApp({ inFlight, token = configuredToken(), requireToken = true } = {}) {
+export function createApp({
+  inFlight,
+  token = configuredToken(),
+  requireToken = true,
+}: AppOptions = {}): Express {
   // Open only when the caller said so and there is no token to enforce. A token that was given is
   // always enforced, and always has to be usable.
   const open = !requireToken && token === "";
@@ -225,7 +247,7 @@ export function createApp({ inFlight, token = configuredToken(), requireToken = 
    * Registered last, and declared with four arguments, because that is how express
    * recognises an error handler rather than ordinary middleware.
    */
-  app.use((error, _req, res, next) => {
+  const handleError: ErrorRequestHandler = (error: BodyParserError | undefined, _req, res, next) => {
     if (res.headersSent) {
       next(error);
       return;
@@ -237,7 +259,8 @@ export function createApp({ inFlight, token = configuredToken(), requireToken = 
     }
 
     rpcError(res, 500, -32603, String(error?.message ?? error));
-  });
+  };
+  app.use(handleError);
 
   return app;
 }

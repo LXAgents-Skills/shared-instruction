@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# Build output, made by `npm run build` (and by `npm install`, through `prepare`)
+dist/
+
 # Logs
 *.log
 npm-debug.log*

@@ -53,3 +53,29 @@ Landed: `@modelcontextprotocol/sdk` `^1.32.2`, `express` `^5.3.0`, `zod` `^4.6.7
 latest on the registry, and `npm audit fix` for the transitive tree. `npm audit` went from 8
 vulnerabilities (3 high, 5 moderate: among them `zod` below 4.6.6, `hono`, `ip-address`, `qs`)
 to 0. `npm outdated` is empty. 74/74 tests unchanged.
+
+### Task 3 — refactor/typescript
+
+Landed: every file in `src/` and `test/` renamed to `.ts` (`git mv`, so history follows) and
+typed under `strict`. `tsconfig.json` (ES2022, `NodeNext`, `src` → `dist`) builds the server;
+`tsconfig.test.json` extends it with `noEmit` over `src` and `test`, so the tests are held to
+the same strictness. Dev dependencies: `typescript` 7.0.2, `@types/node` 26.6.6,
+`@types/express` 5.0.6, `tsx` 4.23.15. `package.json`: `main` and `bin` → `dist/index.js`,
+`files` ships `dist` instead of `src`, scripts `build`, `prepare`, `typecheck`, `start*` and
+`inspect` on `dist/`, `pretest` builds and type-checks, `test` runs `node --import tsx --test`.
+`dist/` is in `.gitignore` and `.dockerignore`. The Dockerfile is two stages (D4).
+
+Types added, logic untouched: `AppOptions`/`RequestCloser` (app), `InstructionTool`/
+`InstructionConfig` (from-content), `PackageManifest` (version), a typed harness
+(`RunningServer`, `ServerOptions`, `ExitStatus`, `RunResult`). One dead argument removed:
+`server.ts` passed `inputSchema: config.schema`, and `config` never had a `schema`, so it was
+always `undefined`; the tool surface is unchanged.
+
+Verified: `npm run build` clean; `npm test` 74/74 (the baseline count) with the process tests
+spawning `dist/`; `npm audit` 0. Tool surface compared against `master` over stdio — 49 tools,
+names, descriptions, input schemas, every body, server name and instructions — one sha256 for
+both. Both image stages replayed by hand outside Docker (stdio lists 49 tools, HTTP `/healthz`
+answers); `docker build` itself could not run here, because Docker Hub answered 429.
+
+Left: `test/http.cluster.test.ts` reads `transport.stdout`, which `StdioClientTransport` does
+not have, so that capture has always been a no-op. Kept as it was, with a cast and a comment.

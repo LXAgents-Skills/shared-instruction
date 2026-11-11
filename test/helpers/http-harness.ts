@@ -1,20 +1,21 @@
 import assert from "node:assert/strict";
 import { after } from "node:test";
-import { spawn } from "node:child_process";
-import { createServer as createNetServer } from "node:net";
+import { spawn, type ChildProcess } from "node:child_process";
+import { createServer as createNetServer, type AddressInfo } from "node:net";
 import { request as httpRequest } from "node:http";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { createServer, INSTRUCTION_MODULES } from "../../src/server.js";
 
 /**
  * The shared harness for the HTTP suites: the token, the entry points, and the helpers that
  * start a real server as a child process and connect to it.
  *
- * Every `test/http.*.test.js` file imports from here. The `after()` hooks below run once per
+ * Every `test/http.*.test.ts` file imports from here. The `after()` hooks below run once per
  * test file, because `node --test` runs each file in its own process, so a failed assertion in
  * any suite still cannot leak a child or a client.
  */
@@ -25,7 +26,7 @@ import { createServer, INSTRUCTION_MODULES } from "../../src/server.js";
  * Derived from the same array `createServer()` registers from, so adding a file to
  * `content/` does not mean editing four hardcoded numbers in this file. Every tool is
  * generated from a file, so it equals `INSTRUCTION_FILES.size`, which is the count
- * `server.test.js` asserts against.
+ * `server.test.ts` asserts against.
  *
  * **The lower bound is the point.** A count derived from the thing under test passes
  * when the thing under test is empty, so this asserts the surface is real before using
@@ -41,7 +42,7 @@ assert.ok(
 /**
  * The HTTP transport, tested over a real socket.
  *
- * `test/server.test.js` exercises the server in memory: same code, no listener. What that
+ * `test/server.test.ts` exercises the server in memory: same code, no listener. What that
  * cannot reach is the part that only exists when there is a socket — the route table, the
  * transport's own framing, the host it binds, the shape of its errors, and what a shutdown
  * does to a request that is still in flight. This file is that half, and it starts the real
@@ -58,14 +59,49 @@ export const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 /**
  * The two entry points, named rather than assumed.
  *
- * `src/http.js` is what `npm run start:http` and the `Dockerfile` run, and most of this
- * file drives it. `src/index.js` is what a client spawns, and the delegation to
- * `src/http.js` on `MCP_TRANSPORT=http` is a separate behaviour with its own test — a
+ * They are the compiled files in `dist/`, which `npm test` builds first, because those are what a
+ * client runs: a process test against the sources would pass on a build that does not.
+ *
+ * `dist/http.js` is what `npm run start:http` and the `Dockerfile` run, and most of this
+ * file drives it. `dist/index.js` is what a client spawns, and the delegation to
+ * `dist/http.js` on `MCP_TRANSPORT=http` is a separate behaviour with its own test — a
  * change that made `npm run start:http` work and `MCP_TRANSPORT=http` fail would be the
  * kind of near miss that reads as a working server.
  */
-export const ENTRY_HTTP = join(ROOT, "src", "http.js");
-export const ENTRY_INDEX = join(ROOT, "src", "index.js");
+export const ENTRY_HTTP = join(ROOT, "dist", "http.js");
+export const ENTRY_INDEX = join(ROOT, "dist", "index.js");
+
+/** How a server process is started: which entry point, and what to add to its environment. */
+export interface ServerOptions {
+  entry?: string;
+  env?: Record<string, string | undefined>;
+}
+
+/** How a child process ended. */
+export interface ExitStatus {
+  code: number | null;
+  signal: NodeJS.Signals | null;
+}
+
+/** How a process run to completion ended, and everything it wrote. */
+export interface RunResult {
+  code: number | string | null;
+  output: string;
+}
+
+/** A started server, and the probes a test reads it through. */
+export interface RunningServer {
+  child: ChildProcess;
+  proc: ChildProcess;
+  port: number;
+  url: string;
+  output: () => string;
+  countOutput: (needle: string) => number;
+  stdout: () => string;
+  stderr: () => string;
+  waitForOutput: (needle: string, ms?: number) => Promise<boolean>;
+  waitForCount: (needle: string, n: number, ms?: number) => Promise<boolean>;
+}
 
 /**
  * The token every server started by this file runs with, unless a test says otherwise.
@@ -78,7 +114,7 @@ export const ENTRY_INDEX = join(ROOT, "src", "index.js");
 export const TEST_TOKEN = "test-token-0123456789abcdef0123456789abcdef";
 
 /** An `Authorization` header carrying `token`. */
-export const bearer = (token = TEST_TOKEN) => ({ authorization: `Bearer ${token}` });
+export const bearer = (token: string = TEST_TOKEN): { authorization: string } => ({ authorization: `Bearer ${token}` });
 
 /**
  * How long to wait for the startup line.
@@ -91,14 +127,17 @@ export const bearer = (token = TEST_TOKEN) => ({ authorization: `Bearer ${token}
 export const READY_TIMEOUT_MS = 30_000;
 
 /** The text of a single-content tool result. */
-export function textOf(result) {
-  assert.notEqual(result.isError, true, "expected a successful result");
-  assert.equal(result.content.length, 1, "expected exactly one content block");
-  return result.content[0].text;
+export function textOf(result: CallToolResult | Record<string, unknown>): string {
+  const { isError, content } = result as CallToolResult;
+  assert.notEqual(isError, true, "expected a successful result");
+  assert.equal(content.length, 1, "expected exactly one content block");
+  const [block] = content;
+  assert.ok(block?.type === "text", "expected a text content block");
+  return block.text;
 }
 
 /** A free port, so parallel runs do not collide. */
-export function freePort() {
+export function freePort(): Promise<number> {
   // Bound and immediately released. Still correct now that N workers race for the one port:
   // they race for it through the cluster's shared handle, so exactly one `bind` syscall
   // happens however many of them there are, and a helper that probed the port with one
@@ -108,14 +147,14 @@ export function freePort() {
     const probe = createNetServer();
     probe.on("error", reject);
     probe.listen(0, "127.0.0.1", () => {
-      const { port } = probe.address();
+      const { port } = probe.address() as AddressInfo;
       probe.close(() => resolve(port));
     });
   });
 }
 
 /** Every child started by this file, so a failed assertion cannot leak one. */
-export const openServers = new Set();
+export const openServers = new Set<ChildProcess>();
 
 after(() => {
   for (const child of openServers) child.kill("SIGKILL");
@@ -127,14 +166,8 @@ after(() => {
  * Both streams are captured, because the startup line is on stderr and stdout must stay
  * empty on a server process — a line on stdout would be a defect worth failing on, and one
  * that only shows up when someone switches back to stdio.
- *
- * @param {{ entry?: string, env?: Record<string, string> }} [options]
- * @returns {Promise<{child: import("node:child_process").ChildProcess, port: number,
- *   url: string, proc: import("node:child_process").ChildProcess,
- *   output: () => string, stdout: () => string, stderr: () => string,
- *   countOutput: (needle: string) => number, waitForOutput: (needle: string, ms?: number) => Promise<boolean>}>}
  */
-export async function startServer({ entry = ENTRY_HTTP, env = {} } = {}) {
+export async function startServer({ entry = ENTRY_HTTP, env = {} }: ServerOptions = {}): Promise<RunningServer> {
   const port = await freePort();
 
   const child = spawn(process.execPath, [entry], {
@@ -157,17 +190,17 @@ export async function startServer({ entry = ENTRY_HTTP, env = {} } = {}) {
   let captured = "";
   let stdout = "";
   let stderr = "";
-  child.stdout.on("data", (chunk) => {
+  child.stdout.on("data", (chunk: Buffer) => {
     captured += chunk;
     stdout += chunk;
   });
-  child.stderr.on("data", (chunk) => {
+  child.stderr.on("data", (chunk: Buffer) => {
     captured += chunk;
     stderr += chunk;
   });
 
   /** Everything the process has written, on either stream. */
-  const output = () => captured;
+  const output = (): string => captured;
 
   /**
    * How many times `needle` has appeared so far.
@@ -175,10 +208,10 @@ export async function startServer({ entry = ENTRY_HTTP, env = {} } = {}) {
    * Not a boolean: with more than one worker the line is printed once per worker, and "the
    * line appeared" cannot tell one process from two.
    */
-  const countOutput = (needle) => captured.split(needle).length - 1;
+  const countOutput = (needle: string): number => captured.split(needle).length - 1;
 
   /** Resolve true once `needle` has appeared, false if `ms` runs out first. */
-  const waitForOutput = (needle, ms = READY_TIMEOUT_MS) =>
+  const waitForOutput = (needle: string, ms: number = READY_TIMEOUT_MS): Promise<boolean> =>
     new Promise((resolveWait) => {
       if (captured.includes(needle)) {
         resolveWait(true);
@@ -197,7 +230,7 @@ export async function startServer({ entry = ENTRY_HTTP, env = {} } = {}) {
     });
 
   /** Resolve true once `needle` has appeared `n` times, false if `ms` runs out first. */
-  const waitForCount = (needle, n, ms = READY_TIMEOUT_MS) =>
+  const waitForCount = (needle: string, n: number, ms: number = READY_TIMEOUT_MS): Promise<boolean> =>
     new Promise((resolveWait) => {
       if (countOutput(needle) >= n) {
         resolveWait(true);
@@ -215,14 +248,14 @@ export async function startServer({ entry = ENTRY_HTTP, env = {} } = {}) {
       }, 50);
     });
 
-  const exited = new Promise((resolveExit) => {
+  const exited = new Promise<ExitStatus>((resolveExit) => {
     child.once("exit", (code, signal) => resolveExit({ code, signal }));
   });
 
   // Either the startup line arrives, or the process dies trying — whichever comes first.
   // A server that exited quietly is a failure to report with its own output attached, not
   // a server to test against.
-  const ready = await Promise.race([
+  const ready: { ok?: boolean; exit?: ExitStatus } = await Promise.race([
     waitForOutput("serving Skill MCP over http").then((ok) => ({ ok })),
     exited.then((exit) => ({ exit })),
   ]);
@@ -250,11 +283,11 @@ export async function startServer({ entry = ENTRY_HTTP, env = {} } = {}) {
 
 /**
  * Start a server, hand it to `run`, and stop it afterwards whether or not `run` throws.
- *
- * @param {object} options
- * @param {(server: Awaited<ReturnType<typeof startServer>>) => Promise<void>} run
  */
-export async function withServer(options, run) {
+export async function withServer<T>(
+  options: ServerOptions,
+  run: (server: RunningServer) => Promise<T>,
+): Promise<T> {
   const server = await startServer(options);
   try {
     return await run(server);
@@ -264,7 +297,7 @@ export async function withServer(options, run) {
 }
 
 /** Connect an MCP client to a running server over a real socket, carrying the test token. */
-export async function connect(url, { token = TEST_TOKEN } = {}) {
+export async function connect(url: string, { token = TEST_TOKEN }: { token?: string } = {}): Promise<Client> {
   const client = new Client({ name: "http-test", version: "0.0.0" });
   await client.connect(
     new StreamableHTTPClientTransport(new URL(`${url}/mcp`), {
@@ -282,7 +315,7 @@ export async function connect(url, { token = TEST_TOKEN } = {}) {
  * failing test. Tracked so one hook can close them all, including one a test opened before
  * it failed.
  */
-export const openClients = new Set();
+export const openClients = new Set<Client>();
 
 after(async () => {
   await Promise.allSettled([...openClients].map((client) => client.close()));
@@ -290,7 +323,7 @@ after(async () => {
 });
 
 /** An in-memory client, the reference the socket client is compared against. */
-export async function inMemoryClient() {
+export async function inMemoryClient(): Promise<{ client: Client; close: () => Promise<void> }> {
   const server = createServer();
   const client = new Client({ name: "in-memory-test-client", version: "0.0.0" });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -313,11 +346,16 @@ export async function inMemoryClient() {
  * that silently drops it sends the loopback name every time — so a test written with `fetch`
  * would exercise the allow-list and conclude whatever the real control does, which is the
  * worst way to test a security control.
- *
- * @param {{url: string, host: string, path?: string}} options
- * @returns {Promise<{status: number, body: string}>}
  */
-export function requestWithHost({ url, host, path = "/healthz" }) {
+export function requestWithHost({
+  url,
+  host,
+  path = "/healthz",
+}: {
+  url: string;
+  host: string;
+  path?: string;
+}): Promise<{ status: number | undefined; body: string }> {
   const target = new URL(path, url);
 
   return new Promise((resolveRequest, rejectRequest) => {
@@ -332,7 +370,7 @@ export function requestWithHost({ url, host, path = "/healthz" }) {
       (res) => {
         let body = "";
         res.setEncoding("utf8");
-        res.on("data", (chunk) => {
+        res.on("data", (chunk: string) => {
           body += chunk;
         });
         res.on("end", () => resolveRequest({ status: res.statusCode, body }));
@@ -345,25 +383,22 @@ export function requestWithHost({ url, host, path = "/healthz" }) {
 }
 
 /** A JSON-RPC `tools/list`, with the headers the Streamable HTTP transport insists on. */
-export const LIST_TOOLS = {
+export const LIST_TOOLS: { method: string; headers: Record<string, string>; body: string } = {
   method: "POST",
   headers: { "content-type": "application/json", accept: "application/json, text/event-stream" },
   body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
 };
 
 /** `LIST_TOOLS` with an extra header merged in. */
-export const withHeaders = (extra) => ({ ...LIST_TOOLS, headers: { ...LIST_TOOLS.headers, ...extra } });
+export const withHeaders = (extra: Record<string, string>): typeof LIST_TOOLS => ({ ...LIST_TOOLS, headers: { ...LIST_TOOLS.headers, ...extra } });
 
 /**
  * Start a process that is expected to stop, and report how it stopped.
  *
  * `startServer` waits for a startup line and treats an early exit as a failure to come up, which
  * is exactly what these tests assert should happen — so they need the exit, not the failure.
- *
- * @param {{ entry?: string, env?: Record<string, string> }} [options]
- * @returns {Promise<{ code: number | string | null, output: string }>}
  */
-export async function runToExit({ entry = ENTRY_HTTP, env = {} } = {}) {
+export async function runToExit({ entry = ENTRY_HTTP, env = {} }: ServerOptions = {}): Promise<RunResult> {
   const port = await freePort();
   const child = spawn(process.execPath, [entry], {
     cwd: ROOT,
@@ -373,10 +408,10 @@ export async function runToExit({ entry = ENTRY_HTTP, env = {} } = {}) {
   openServers.add(child);
 
   let output = "";
-  child.stdout.on("data", (chunk) => (output += chunk));
-  child.stderr.on("data", (chunk) => (output += chunk));
+  child.stdout.on("data", (chunk: Buffer) => (output += chunk));
+  child.stderr.on("data", (chunk: Buffer) => (output += chunk));
 
-  return new Promise((resolveRun) => {
+  return new Promise<RunResult>((resolveRun) => {
     const timer = setTimeout(() => {
       child.kill("SIGKILL");
       resolveRun({ code: "still running", output });

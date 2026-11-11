@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { toolId } from "../src/instructions/from-content.js";
 import { createServer as createNetServer } from "node:net";
+import type { Readable } from "node:stream";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { SERVER_NAME } from "../src/version.js";
@@ -14,6 +15,7 @@ import {
   withServer,
   connect,
   openClients,
+  type ExitStatus,
 } from "./helpers/http-harness.js";
 
 /**
@@ -22,10 +24,10 @@ import {
  * Shared setup is in `helpers/http-harness.js`.
  */
 
-test("MCP_TRANSPORT=http reaches the same server through src/index.js", async () => {
+test("MCP_TRANSPORT=http reaches the same server through dist/index.js", async () => {
   // The delegation is a separate behaviour from the server. `package.json`'s `start:http`
-  // and the `Dockerfile` both name `src/http.js` and neither may change, so the transport
-  // selection lives in `src/index.js` and reaches the entry point by dynamic import. If
+  // and the `Dockerfile` both name `dist/http.js` and neither may change, so the transport
+  // selection lives in `dist/index.js` and reaches the entry point by dynamic import. If
   // that hop broke, `npm run start:http` would keep working and every client configured
   // with `MCP_TRANSPORT=http` would silently fall back to stdio.
   await withServer(
@@ -49,7 +51,7 @@ test("MCP_TRANSPORT=http reaches the same server through src/index.js", async ()
   );
 });
 
-test("node src/index.js still speaks stdio and writes nothing to stdout", async () => {
+test("node dist/index.js still speaks stdio and writes nothing to stdout", async () => {
   // Not driven through `startServer`, which waits for an HTTP startup line that stdio never
   // prints. Driven through the SDK's own stdio client instead, so this is the real entry
   // point over a real pipe — the assertion is that the tool list comes back intact, not that
@@ -57,7 +59,7 @@ test("node src/index.js still speaks stdio and writes nothing to stdout", async 
   const client = new Client({ name: "stdio-test", version: "0.0.0" });
   const transport = new StdioClientTransport({
     command: process.execPath,
-    args: ["src/index.js"],
+    args: ["dist/index.js"],
     cwd: ROOT,
     // No token, deliberately: the token belongs to the HTTP transport, and a local process
     // that is spawned by its own client has nobody to authenticate. Blanked rather than
@@ -67,7 +69,9 @@ test("node src/index.js still speaks stdio and writes nothing to stdout", async 
   });
 
   let stdout = "";
-  transport.stdout?.on("data", (chunk) => {
+  // `StdioClientTransport` exposes `stderr` and not `stdout`, which is the protocol stream it reads
+  // itself; the optional chain keeps this a no-op where the property is absent, exactly as before.
+  (transport as unknown as { stdout?: Readable }).stdout?.on("data", (chunk: Buffer) => {
     stdout += chunk;
   });
 
@@ -122,16 +126,16 @@ test(
     const { readFile } = await import("node:fs/promises");
 
     /** Resident set size of `pid`, in bytes, from `/proc`. */
-    const rssOf = async (pid) => {
+    const rssOf = async (pid: number | undefined): Promise<number> => {
       const status = await readFile(`/proc/${pid}/status`, "utf8");
       const line = status.split("\n").find((row) => row.startsWith("VmRSS:"));
-      return Number.parseInt(line.split(/\s+/)[1], 10) * 1024;
+      return Number.parseInt(line!.split(/\s+/)[1]!, 10) * 1024;
     };
 
     await withServer(
       { env: { MCP_CLUSTER_WORKERS: "1" } },
       async ({ child, url }) => {
-        const hammer = async (times) => {
+        const hammer = async (times: number): Promise<void> => {
           for (let i = 0; i < times; i += 1) {
             const response = await fetch(`${url}/healthz`);
             assert.equal(response.status, 200);
@@ -288,9 +292,9 @@ test(
       // something else can bind it again.
       const rebound = createNetServer();
       try {
-        await new Promise((resolveBind, rejectBind) => {
+        await new Promise<void>((resolveBind, rejectBind) => {
           rebound.on("error", rejectBind);
-          rebound.listen(port, "127.0.0.1", resolveBind);
+          rebound.listen(port, "127.0.0.1", () => resolveBind());
         });
       } finally {
         await new Promise((resolveClose) => rebound.close(resolveClose));
@@ -310,7 +314,7 @@ test(
       async ({ child, output, waitForCount }) => {
         assert.ok(await waitForCount("serving Skill MCP over http", 2), "the fork did not happen");
 
-        const exited = new Promise((resolveExit) =>
+        const exited = new Promise<ExitStatus>((resolveExit) =>
           child.once("exit", (code, signal) => resolveExit({ code, signal }))
         );
         child.kill("SIGINT");
@@ -351,7 +355,7 @@ test(
       async ({ child, output, waitForCount }) => {
         assert.ok(await waitForCount("serving Skill MCP over http", 2), "the fork did not happen");
 
-        const exited = new Promise((resolveExit) =>
+        const exited = new Promise<{ code: number | null }>((resolveExit) =>
           child.once("exit", (code) => resolveExit({ code }))
         );
 
@@ -390,7 +394,7 @@ test(
      * `children` lives under the thread directory rather than the process one, which is the
      * shape the kernel has and the shape every tool on Linux expects.
      */
-    const childrenOf = async (pid) => {
+    const childrenOf = async (pid: number | undefined): Promise<number[]> => {
       const listed = await readFile(`/proc/${pid}/task/${pid}/children`, "utf8");
       return listed.split(/\s+/).filter(Boolean).map(Number);
     };

@@ -1,3 +1,5 @@
+import type { Response } from "express";
+
 /**
  * A JSON-RPC error response.
  *
@@ -5,11 +7,9 @@
  * bearer-token check. It is the same envelope a client parses for a successful response, so a
  * client never has to branch on content type to find out it was refused.
  *
- * @param {import("express").Response} res
- * @param {number} status The HTTP status.
- * @param {number} code The JSON-RPC error code.
- * @param {string} message
+ * @param status The HTTP status.
+ * @param code The JSON-RPC error code.
  */
-export function rpcError(res, status, code, message) {
+export function rpcError(res: Response, status: number, code: number, message: string): void {
   res.status(status).json({ jsonrpc: "2.0", error: { code, message }, id: null });
 }
