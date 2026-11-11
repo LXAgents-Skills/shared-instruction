@@ -84,7 +84,7 @@ Full orientation: [`../wiki/context/repository-map.md`](../wiki/context/reposito
   configuration where stdout is the stream, and that is why it is one rule and not a
   per-file exception.
 * **The set is read once at boot and frozen.** Never mutate an entry of the map
-  `src/tools/from-content.js` builds, and never add a per-request cache keyed on shared
+  `src/instructions/from-content.js` builds, and never add a per-request cache keyed on shared
   state — that is what makes concurrent clients safe.
 * **Read set text from `content/`; never hard-code it.** A file's own frontmatter supplies
   its tool description, which is why the description can never disagree with the file. A

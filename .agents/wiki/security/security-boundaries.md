@@ -47,7 +47,7 @@ that would violate it, not after.
 | About to touch… | Verify before committing |
 |---|---|
 | Anything under `content/` | It cannot direct another repository's agent to run a command, weaken a convention, or skip a permission gate. This is the highest-reach change in the repository — see the trust boundary in the human page. |
-| A tool's shape in `src/tools/from-content.js` | It still takes **no argument**. A path parameter is the single change that would reopen traversal, and it is the one to argue against hardest. |
+| A tool's shape in `src/instructions/from-content.js` | It still takes **no argument**. A path parameter is the single change that would reopen traversal, and it is the one to argue against hardest. |
 | The read path | No filesystem or network I/O was introduced. Reads are in-memory lookups, and that is what stops a read being steered at the disk. |
 | `Dockerfile` | `--ignore-scripts` survives, the runtime stage still ends as `USER node`, and any `EXPOSE` still matches the port the entrypoint actually binds. Either of the first two dropped turns a pinned, non-root image into one that runs install hooks as root. |
 | `src/http.js`, or anything touching a transport | `MCP_ALLOWED_HOSTS` still defaults to unset rather than to a permissive list, sessions are still deleted when their stream closes, and no `McpServer` is shared between them. HTTP still refuses to start without `MCP_AUTH_TOKEN`, and stdio still never reads it. |

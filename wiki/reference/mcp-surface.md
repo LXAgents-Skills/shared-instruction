@@ -76,7 +76,7 @@ supplied, and the module that did is gone.
 
 ### Failure at boot
 
-`buildContentTools()` throws, failing the process, when:
+`buildContentInstructions()` throws, failing the process, when:
 
 | Condition | Why it is fatal rather than a warning |
 |---|---|
@@ -125,7 +125,7 @@ documented all of the following as if it were shipped. None of it is.
 | **Resources** | There is no `agents://` URI scheme to fetch and no `manifest.json`. |
 | **A CLI** | `package.json` declares one bin, `lxagents-shared-instruction`, which is the server. There is no `lxagents-agents`, no `list`/`read`/`setup`/`audit` subcommands, and no `npm run cli`. |
 | **A writer** | Every tool is read-only. The tools that would write the set are not registered rather than disabled, so pointing a repository at this server cannot mutate it. A test asserts that no tool accepts a write verb or a credential. |
-| **A registry of tools** | `src/constants.js`, `src/server/` and `src/cli.js` were removed. The surface is built by `src/tools/from-content.js` and the array in `src/server.js`. |
+| **A registry of tools** | `src/constants.js`, `src/server/` and `src/cli.js` were removed. The surface is built by `src/instructions/from-content.js` and the array in `src/server.js`. |
 | **Health and readiness endpoints** | `GET /healthz`, and nothing else. **This row previously read the opposite** — "No `/healthz`, no `/readyz`… a probe endpoint on a server that serves only public markdown is a route that exists to be scanned" — and the objection was met with consistency rather than refuted. The four sibling servers already serve `/healthz`, and a deployment that has to treat one of five identically shaped servers differently is one this repository declined to pay for. What answers is `{ status, server, version }` and nothing derived from the set, before any body is read, so the route is not a window onto the content. |
 | **Authentication on stdio** | None, and none is needed: a client spawns the process on its own machine, so the only caller is whoever already runs it. The HTTP transport is different — see below and the [security model](../security/security-model.md). |
 

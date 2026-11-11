@@ -11,7 +11,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { BODY_LIMIT_BYTES, createApp } from "../src/app.js";
 import { MIN_TOKEN_LENGTH, configuredToken, tokenProblem } from "../src/auth.js";
-import { createServer, TOOL_MODULES } from "../src/server.js";
+import { createServer, INSTRUCTION_MODULES } from "../src/server.js";
 import { SERVER_NAME } from "../src/version.js";
 
 /**
@@ -19,7 +19,7 @@ import { SERVER_NAME } from "../src/version.js";
  *
  * Derived from the same array `createServer()` registers from, so adding a file to
  * `content/` does not mean editing four hardcoded numbers in this file. Every tool is
- * generated from a file, so it equals `TOOL_FILES.size`, which is the count
+ * generated from a file, so it equals `INSTRUCTION_FILES.size`, which is the count
  * `server.test.js` asserts against.
  *
  * **The lower bound is the point.** A count derived from the thing under test passes
@@ -27,7 +27,7 @@ import { SERVER_NAME } from "../src/version.js";
  * its size as an expectation. Without it, a `content/` that failed to load would make
  * every assertion below pass by comparing zero to zero.
  */
-const EXPECTED_TOOLS = TOOL_MODULES.length;
+const EXPECTED_TOOLS = INSTRUCTION_MODULES.length;
 assert.ok(
   EXPECTED_TOOLS > 20,
   `expected a real tool surface, found ${EXPECTED_TOOLS} — content/ may have failed to load`,
