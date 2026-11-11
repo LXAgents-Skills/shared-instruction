@@ -42,19 +42,28 @@ more than this repository?*
 
 ## Stack and commands
 
-Plain JavaScript, Node ESM, Node >= 20. **There is no build step** — do not add one, and
-do not introduce TypeScript, a bundler, or a transpiler without agreement.
+TypeScript under `strict`, Node ESM (`NodeNext`), Node >= 20. `tsc` is the one build step: it
+compiles `src/` to `dist/`, and nothing else transforms the code — do not add a bundler, a second
+compiler, or a second `tsconfig` that emits, without agreement. `tsconfig.test.json` exists to
+type-check `test/` with the same options, and emits nothing.
+
+**`dist/` is built, never committed.** `prepare` runs `tsc`, so `npm install` in a fresh clone is
+what produces it; that is how the owner installs. Every runnable path — `main`, `bin`, the start
+scripts, the `Dockerfile`, a client's server config — names `dist/`, and every source path names
+`src/`.
 
 | Task | Command |
 |---|---|
-| Install | `npm install` |
-| Test | `npm test` |
+| Install (and build) | `npm install` |
+| Build | `npm run build` |
+| Type-check sources and tests | `npm run typecheck` |
+| Test (builds and type-checks first) | `npm test` |
 | Run (stdio) | `npm start` |
 | Run (HTTP) | `npm run start:http` |
 | Inspect the MCP surface | `npm run inspect` |
 | Build the image | `docker build -t lxagents-shared-instruction:<version> .` |
 | Run the image (stdio) | `docker run --rm -i lxagents-shared-instruction:<version>` |
-| Run the image (HTTP) | `docker run --rm -p 3000:3000 lxagents-shared-instruction:<version> node src/http.js` |
+| Run the image (HTTP) | `docker run --rm -p 3000:3000 lxagents-shared-instruction:<version> node dist/http.js` |
 
 There is no `npm run cli`. There is still no `compose.yaml`, and the reason is no longer
 that there is no transport to compose — a compose file encodes a deployment, and this
@@ -74,17 +83,18 @@ Full orientation: [`../wiki/context/repository-map.md`](../wiki/context/reposito
 
 ## Code conventions the codebase already follows
 
-* **ESM only.** `import`/`export`, `.js` extensions in relative specifiers, no `require`.
+* **ESM only.** `import`/`export`, `.js` extensions in relative specifiers (`NodeNext` resolves
+  `./server.js` to `src/server.ts` when compiling, and the emitted file keeps the `.js`), no `require`.
 * **Nothing writes to stdout.** On the stdio transport stdout *is* the JSON-RPC channel.
-  There is no logger module and no `console.log` anywhere in `src/`. `src/http.js` used to
+  There is no logger module and no `console.log` anywhere in `src/`. `src/http.ts` used to
   be the deliberate exception — the protocol is on a socket there, so stdout was an
-  ordinary log channel — and it no longer is, because `src/index.js` now reaches it by
+  ordinary log channel — and it no longer is, because `src/index.ts` now reaches it by
   dynamic import and the same process can be one transport or the other. It logs to stderr.
   A log line drifting onto stdout is a bug that corrupts the protocol stream in the one
   configuration where stdout is the stream, and that is why it is one rule and not a
   per-file exception.
 * **The set is read once at boot and frozen.** Never mutate an entry of the map
-  `src/instructions/from-content.js` builds, and never add a per-request cache keyed on shared
+  `src/instructions/from-content.ts` builds, and never add a per-request cache keyed on shared
   state — that is what makes concurrent clients safe.
 * **Read set text from `content/`; never hard-code it.** A file's own frontmatter supplies
   its tool description, which is why the description can never disagree with the file. A
@@ -99,11 +109,13 @@ Full orientation: [`../wiki/context/repository-map.md`](../wiki/context/reposito
 
 ## Testing
 
-Every behavioural change ships with a test in `test/`, using `node:test` and
-`node:assert/strict`. The suite must pass before any commit.
+Every behavioural change ships with a test in `test/`, written in TypeScript and run by
+`node:test` through `tsx`, with `node:assert/strict`. The suite must pass, and type-check, before
+any commit. Tests import the sources from `src/`; tests that start a server process start the
+compiled `dist/` entry points, because that is what a client runs.
 
-`test/server.test.js` is the surface suite. The `test/http.*.test.js` files, one per subject
-with a shared harness in `test/helpers/http-harness.js`, cover the HTTP transport against a real listening process, because the things that go
+`test/server.test.ts` is the surface suite. The `test/http.*.test.ts` files, one per subject
+with a shared harness in `test/helpers/http-harness.ts`, cover the HTTP transport against a real listening process, because the things that go
 wrong there are about sockets and sessions and do not reproduce on an in-memory transport.
 Prefer a test that pins an invariant over one that pins a string: the useful ones here
 assert that files and tools are a bijection in both directions, that no tool takes an
@@ -112,7 +124,9 @@ transports agree tool for tool.
 
 ## What must not be introduced
 
-* A build step, or any compiled output committed to the repository.
+* Compiled output committed to the repository, or a build step beyond `tsc`.
+* `any`, or an implicit one. `strict` is on for a reason; a type that cannot be written is a
+  design question, not something to silence.
 * A dependency added to serve one call site. The runtime dependencies are the MCP SDK,
   zod, and `express` — the last added for the HTTP transport and reasoned in
   `.agents/memory/decisions/express-for-http-transport.md`. A fourth needs its own record
@@ -135,7 +149,7 @@ Published to npm as `@lxagents-skills/shared-instruction`, and consumed mostly a
 subprocess. The package exposes one bin, `lxagents-shared-instruction`, which is the
 server.
 
-`src/http.js` can also serve the same tools at `POST /mcp` for a client that reaches a
+`src/http.ts` can also serve the same tools at `POST /mcp` for a client that reaches a
 fixed address instead of spawning a process. **It is a capability, not a deployment** —
 this repository routes nothing, names no host, and decides no ingress. The distinction
 matters because a listener with no front door is a security claim, and

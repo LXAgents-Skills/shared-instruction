@@ -12,8 +12,8 @@ transports, and they expose the same tools. See
 | Field | Value |
 |---|---|
 | `name` | `lxagents-shared-instruction` |
-| `version` | from `package.json`, read at import by `src/version.js` |
-| transport | stdio (`src/index.js`), or stateless HTTP (`src/http.js`, `POST /mcp`) with a required bearer token |
+| `version` | from `package.json`, read at import by `src/version.ts` |
+| transport | stdio (`src/index.ts`), or stateless HTTP (`src/http.ts`, `POST /mcp`) with a required bearer token |
 
 Every entry point calls the same `createServer()`, so the surface is identical by
 construction. A test asserts the two agree, tool for tool and byte for byte on a call.
@@ -66,7 +66,7 @@ disk. The frontmatter is part of the published text, not metadata to strip.
 **None. No tool takes an argument.**
 
 This is the load-bearing property of the surface, so it is asserted rather than
-described: `test/server.test.js` checks that every tool's `inputSchema` has empty
+described: `test/server.test.ts` checks that every tool's `inputSchema` has empty
 `properties` and empty `required`.
 
 It is worth being precise about what that replaced. The surface used to be one tool taking
@@ -127,7 +127,7 @@ documented all of the following as if it were shipped. None of it is.
 | **Resources** | There is no `agents://` URI scheme to fetch and no `manifest.json`. |
 | **A CLI** | `package.json` declares one bin, `lxagents-shared-instruction`, which is the server. There is no `lxagents-agents`, no `list`/`read`/`setup`/`audit` subcommands, and no `npm run cli`. |
 | **A writer** | Every tool is read-only. The tools that would write the set are not registered rather than disabled, so pointing a repository at this server cannot mutate it. A test asserts that no tool accepts a write verb or a credential. |
-| **A registry of tools** | `src/constants.js`, `src/server/` and `src/cli.js` were removed. The surface is built by `src/instructions/from-content.js` and the array in `src/server.js`. |
+| **A registry of tools** | `src/constants.js`, `src/server/` and `src/cli.js` were removed. The surface is built by `src/instructions/from-content.ts` and the array in `src/server.ts`. |
 | **Health and readiness endpoints** | `GET /healthz`, and nothing else. **This row previously read the opposite** — "No `/healthz`, no `/readyz`… a probe endpoint on a server that serves only public markdown is a route that exists to be scanned" — and the objection was met with consistency rather than refuted. The four sibling servers already serve `/healthz`, and a deployment that has to treat one of five identically shaped servers differently is one this repository declined to pay for. What answers is `{ status, server, version }` and nothing derived from the set, before any body is read, so the route is not a window onto the content. |
 | **Authentication on stdio** | None, and none is needed: a client spawns the process on its own machine, so the only caller is whoever already runs it. The HTTP transport is different — see below and the [security model](../security/security-model.md). |
 
@@ -155,18 +155,18 @@ down here, because a hand-maintained copy of a generated list is a copy that goe
 The set is loaded once, so a session pays for `lxagents_skills_shared_instruction_automation` and the tools whose conditions
 actually fire. Calling every tool reproduces the oversized payload this design replaced, one
 call at a time — and there are dozens of them, so that is a real cost rather than a
-hypothetical one. `src/server.js`'s `instructions` string says so at `initialize`, and
+hypothetical one. `src/server.ts`'s `instructions` string says so at `initialize`, and
 `lxagents_skills_shared_instruction_automation` says it again as a rule.
 
 ## Tests
 
-`test/server.test.js` runs over a real MCP client on an in-memory transport, not a mock. It
+`test/server.test.ts` runs over a real MCP client on an in-memory transport, not a mock. It
 covers the frontmatter contract, the bijection both ways, name derivation and overrides,
 uniqueness and descriptions, the zero-argument claim, byte-for-byte fidelity, total-served
 equality, reachability, the hub (first, total, honest and small), the release-branch wording,
 that no tool points at another, and the read-only claim.
 
-The `test/http.*.test.js` files are the HTTP counterpart, one per subject (routes, hosts, limits, cluster, auth) with a shared harness in `test/helpers/http-harness.js`, over a real client against a real listening process and a
+The `test/http.*.test.ts` files are the HTTP counterpart, one per subject (routes, hosts, limits, cluster, auth) with a shared harness in `test/helpers/http-harness.ts`, over a real client against a real listening process and a
 real cluster rather than an in-memory transport, because the things that can go wrong on the
 HTTP path are about sockets and process boundaries and do not reproduce in memory. Together they
 assert the two transports expose the same tools and return byte-identical payloads, that

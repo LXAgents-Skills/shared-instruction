@@ -15,6 +15,9 @@ stdout, or reach it over HTTP. What the image buys either way:
 * **A pinned toolchain.** `node:22-alpine` instead of whatever is on the host.
 * **A clean dependency tree.** `npm ci --ignore-scripts --omit=dev` from the lockfile.
   `npm ci` fails rather than resolving something the lockfile does not contain.
+* **No compiler in the image.** A first stage installs the dev dependencies and runs `tsc`;
+  the image itself copies only `dist/` and `content/` out of it, so TypeScript and the type
+  packages never ship.
 * **A non-root process.** The image ends as `USER node`.
 * **Isolation from the host**, which matters if the client is on a different machine.
 * **A network boundary**, if you run it as a service — which it did not before the HTTP
@@ -46,7 +49,7 @@ missing flag. There is nothing to publish: this form has no port.
 Override the entrypoint to serve instead of attaching a pipe:
 
 ```bash
-docker run --rm -p 3000:3000 -e MCP_AUTH_TOKEN lxagents-shared-instruction:6.0.4 node src/http.js
+docker run --rm -p 3000:3000 -e MCP_AUTH_TOKEN lxagents-shared-instruction:6.0.4 node dist/http.js
 ```
 
 **`MCP_AUTH_TOKEN` is required for this form.** `-e MCP_AUTH_TOKEN` with no value passes the
@@ -59,7 +62,7 @@ would ship to everyone who pulls it.
 running, healthy, and connectable from nowhere. `EXPOSE 3000` documents the port; it does
 not publish it, which is the part that surprises people.
 
-**That form forks one worker per CPU the container was given.** `src/http.js` is a
+**That form forks one worker per CPU the container was given.** `dist/http.js` is a
 `node:cluster` primary, so the container log carries one `serving over http` line per
 worker rather than one line describing a port the primary never bound. Set
 `MCP_CLUSTER_WORKERS=1` for a single process, which is what you want behind a proxy that
@@ -72,7 +75,7 @@ allow-list is off unless you set it:
 docker run --rm -p 3000:3000 \
   -e MCP_AUTH_TOKEN \
   -e MCP_ALLOWED_HOSTS=shared-instruction.example.com \
-  lxagents-shared-instruction:6.0.4 node src/http.js
+  lxagents-shared-instruction:6.0.4 node dist/http.js
 ```
 
 See [Environment variables](env.md) and the
@@ -136,7 +139,7 @@ With stdin closed the server exits at once, so this checks that the entrypoint
 resolves and Node starts — not that the set is correct. To check the set, run
 `npm test` in a checkout.
 
-For the HTTP form, `docker run --rm -p 3000:3000 … node src/http.js` and then
+For the HTTP form, `docker run --rm -p 3000:3000 … node dist/http.js` and then
 `curl http://localhost:3000/healthz` — a `200` and three fields, which is the correct
 response and a quicker check than a handshake.
 

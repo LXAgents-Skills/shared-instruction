@@ -11,7 +11,8 @@ the agent-facing orientation and links out rather than restating.
 ## What this repository is
 
 `LXAgents-Skills/shared-instruction` — an MCP server that serves the LXAgents shared agent
-instruction set as `lxagents-shared-instruction`. Plain JavaScript, Node ESM, no build step.
+instruction set as `lxagents-shared-instruction`. Strict TypeScript, Node ESM, compiled to
+`dist/` by `npm run build` (and by `npm install`, through `prepare`).
 
 It is both the **producer** of the shared set and a **consumer** of it. See
 [`../../rules/repository.md`](../../rules/repository.md).
@@ -24,12 +25,12 @@ It is both the **producer** of the shared set and a **consumer** of it. See
 | `.agents/` | This repository's own rules, indexes, agent wiki, memory. | You are changing something true only here. |
 | `wiki/` | Human documentation, plus `wiki/logs/` release history. | A person needs to read it. |
 | `src/instructions/` | `from-content.js` builds the whole surface, one tool per file; there is no hand-written tool. | Adding or changing a tool. |
-| `src/server.js` | Builds one `McpServer` and registers every tool; carries the `instructions` text. | Changing the MCP surface. |
-| `src/version.js` | `ROOT`, `CONTENT_DIR`, `VERSION`, `SERVER_NAME`. | Renaming the server or moving the set. |
-| `src/app.js` | The HTTP transport as an application — `POST /mcp`, `GET /healthz`, the 405, the 404, the body limit, the `Host` allow-list, and the token check. Builds and returns; does not listen. | The HTTP surface. |
-| `src/auth.js` | The bearer token: `tokenProblem` (is it usable), `configuredToken` (read at call time, trimmed), and `requireBearerToken` (the constant-time middleware). Reached only by the HTTP path. | Anything about who may call the HTTP transport. |
-| `src/rpc-error.js` | `rpcError`, the one JSON-RPC error envelope — used by the routes and error handler in `app.js` and by the token check in `auth.js`. | Changing the shape of any refusal. |
-| `src/http.js` | The HTTP entry point — the cluster primary and workers, the port, the interface, the startup lines, the in-flight set, and the drain. | Anything about a listening server, a worker count, the port, or shutdown. |
+| `src/server.ts` | Builds one `McpServer` and registers every tool; carries the `instructions` text. | Changing the MCP surface. |
+| `src/version.ts` | `ROOT`, `CONTENT_DIR`, `VERSION`, `SERVER_NAME`. | Renaming the server or moving the set. |
+| `src/app.ts` | The HTTP transport as an application — `POST /mcp`, `GET /healthz`, the 405, the 404, the body limit, the `Host` allow-list, and the token check. Builds and returns; does not listen. | The HTTP surface. |
+| `src/auth.ts` | The bearer token: `tokenProblem` (is it usable), `configuredToken` (read at call time, trimmed), and `requireBearerToken` (the constant-time middleware). Reached only by the HTTP path. | Anything about who may call the HTTP transport. |
+| `src/rpc-error.ts` | `rpcError`, the one JSON-RPC error envelope — used by the routes and error handler in `app.js` and by the token check in `auth.js`. | Changing the shape of any refusal. |
+| `src/http.ts` | The HTTP entry point — the cluster primary and workers, the port, the interface, the startup lines, the in-flight set, and the drain. | Anything about a listening server, a worker count, the port, or shutdown. |
 | `Dockerfile` | A pinned, non-root image for hosts that cannot run Node 20. Serves both transports; `EXPOSE 3000`, stdio entrypoint. | The toolchain the image pins, or the install command it runs. |
 | `test/` | `server.test.js` (in-memory), and `http.{routes,hosts,limits,cluster,auth}.test.js` (against a real listener and a real cluster, with a token) sharing `helpers/http-harness.js`. `npm test` runs `test/*.test.js`, so the harness is not run as a suite. | Always. Every behavioural change ships with one. |
 
@@ -41,33 +42,34 @@ here.
 
 There are **two**, and they differ only in transport:
 
-* `src/index.js` — what an MCP client spawns. Connects a stdio transport by default, and
-  hands over to `src/http.js` when `MCP_TRANSPORT=http` is set. Handles `SIGINT`, and
+* `src/index.ts` — what an MCP client spawns. Connects a stdio transport by default, and
+  hands over to `src/http.ts` when `MCP_TRANSPORT=http` is set. Handles `SIGINT`, and
   writes nothing to stdout.
-* `src/http.js` — `npm run start:http`, and the command the `Dockerfile` documents. A
+* `src/http.ts` — `npm run start:http`, and the command the `Dockerfile` documents, as
+  `dist/http.js`. A
   `node:cluster` primary forks `os.availableParallelism()` workers (`MCP_CLUSTER_WORKERS`
   overrides, `1` disables), each binding the same `HOST`/`PORT` and serving `POST /mcp` and
-  `GET /healthz` from the app in `src/app.js`. **Off loopback it refuses to start without
+  `GET /healthz` from the app in `src/app.ts`. **Off loopback it refuses to start without
   `MCP_AUTH_TOKEN`** — checked in the primary, before any fork; on a loopback `HOST` with no
   token it serves open behind a `localhost` `Host` allow-list. **The primary binds nothing
   and logs no startup line**, so the log carries one `serving over http` line per worker. It logs to
   **stderr**, because it is one dynamic import away from a process whose stdout is the
   JSON-RPC channel.
 
-**`src/http.js` is the HTTP entry point here and `src/index.js` is it in the other four
+**`src/http.ts` is the HTTP entry point here and `src/index.ts` is it in the other four
 servers in the organization.** That is not a preference: `package.json`'s `start:http` and
-the `Dockerfile` comment both name `src/http.js`, and neither may change. The transport
-selection therefore lives in `src/index.js` and reaches `src/http.js` by **dynamic** import,
+the `Dockerfile` comment both name `dist/http.js`, and neither may change. The transport
+selection therefore lives in `src/index.ts` and reaches `src/http.ts` by **dynamic** import,
 so express is not loaded into a stdio process whose stdout is the protocol.
 
 Behind both:
 
-* `src/app.js` — the whole HTTP surface as a factory. It does not listen, which is why
-  `src/http.js` can be tested and reasoned about without a port.
-* `src/instructions/from-content.js` — walks `content/` at import, derives a tool name and
+* `src/app.ts` — the whole HTTP surface as a factory. It does not listen, which is why
+  `src/http.ts` can be tested and reasoned about without a port.
+* `src/instructions/from-content.ts` — walks `content/` at import, derives a tool name and
   description per file, and reads each file once into a frozen `Map`. This is the boot-time
   validation gate, and the only module that touches every file in the set.
-* `src/server.js` — `INSTRUCTION_MODULES`, the array every registered tool comes from. Add a
+* `src/server.ts` — `INSTRUCTION_MODULES`, the array every registered tool comes from. Add a
   module here and its tools appear; nothing else registers anything. Every entry point
   calls `createServer()`, so a change to the surface cannot reach one and miss the other.
 
@@ -86,7 +88,7 @@ npm run inspect          # MCP Inspector against the stdio server
 is `npm run start:http` by another route. There is no watch mode and no
 CLI. `docker build -t lxagents-shared-instruction:$(node -p "require('./package.json').version") .`
 builds the image, which runs the stdio entrypoint with a pinned toolchain; override the
-entrypoint to `src/http.js` for the HTTP form.
+entrypoint to `dist/http.js` for the HTTP form.
 
 ## Gotchas that actually bite
 
@@ -96,16 +98,16 @@ entrypoint to `src/http.js` for the HTTP form.
 * **Content changes need a restart.** The map is frozen at boot; editing markdown does
   nothing to a running process.
 * **Two files outside `content/` copy its text.** The root `AGENTS.md` and the
-  `instructions` string in `src/server.js` both reproduce set text and go stale silently. Grep for a sentence you changed before
+  `instructions` string in `src/server.ts` both reproduce set text and go stale silently. Grep for a sentence you changed before
   committing — see [`../../rules/set-mirrors.md`](../../rules/set-mirrors.md).
 * **HTTP tests need a token, and so does any server you start by hand.** The harness in
-  `test/helpers/http-harness.js` hands every child `MCP_AUTH_TOKEN` and the SDK client the matching
+  `test/helpers/http-harness.ts` hands every child `MCP_AUTH_TOKEN` and the SDK client the matching
   header; a test that spawns the server any other way, or fetches `/mcp` raw, must do the same
   or it will read a `401` as a failure of the thing it is testing. Blank the variable
   (`MCP_AUTH_TOKEN: ""`) to test the refusal to start.
-* **Nothing writes to stdout.** stdout is the JSON-RPC channel on stdio, and `src/index.js`
-  reaches `src/http.js` by dynamic import, so the HTTP process is one hop away from the
-  same constraint. There is no logger module; `src/http.js` logs to stderr, and so should
+* **Nothing writes to stdout.** stdout is the JSON-RPC channel on stdio, and `src/index.ts`
+  reaches `src/http.ts` by dynamic import, so the HTTP process is one hop away from the
+  same constraint. There is no logger module; `src/http.ts` logs to stderr, and so should
   anything else that needs to say something.
 * **`fetch` cannot set `Host`,** so a Host allow-list cannot be tested through it — it
   drops the header and every request arrives as `127.0.0.1`, which passes or fails for the
@@ -114,7 +116,7 @@ entrypoint to `src/http.js` for the HTTP form.
 * **Never share an `McpServer` between connections.** It holds per-connection state;
   reusing one delivers responses to the wrong connection. `createServer()` builds a fresh
   one every time — which is now also per worker, since each forked process has its own.
-* **A worker must die with its primary.** `process.on("disconnect", …)` in `src/http.js` is
+* **A worker must die with its primary.** `process.on("disconnect", …)` in `src/http.ts` is
   not defensive tidiness: without it a worker whose primary was `SIGKILL`ed keeps the port,
   keeps answering, and makes the *next* test run fail on `EADDRINUSE` against a process
   nobody remembers starting.

@@ -105,7 +105,7 @@ branch. Everywhere else, read the connector's tools.
 
 | Transport | How |
 |---|---|
-| Local stdio (default) | `command: node`, `args: ["src/index.js"]`, `cwd:` this checkout |
+| Local stdio (default) | `command: node`, `args: ["dist/index.js"]`, `cwd:` this checkout |
 | Published | `command: npx`, `args: ["-y", "@lxagents-skills/shared-instruction"]` |
 | HTTP | `type: http`, `url: https://<host>/mcp` — `npm run start:http` binds `PORT \|\| 3000` |
 

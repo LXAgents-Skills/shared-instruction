@@ -17,8 +17,8 @@ The server speaks **stdio by default**, so this is a local command:
 }
 ```
 
-To run it from a checkout instead, point `command: node` at `src/index.js` with `cwd` set
-to the clone — the full procedure, including where to put the clone, is in
+To run it from a checkout instead, run `npm install` in the clone (it builds `dist/`), then point `command: node` at
+`dist/index.js` with `cwd` set to the clone — the full procedure, including where to put the clone, is in
 [Install as a local Skill MCP server](install-as-local-mcp.md).
 
 **There is also a remote form**, for a server running at a fixed address rather than

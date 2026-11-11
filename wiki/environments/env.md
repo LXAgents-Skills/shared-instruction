@@ -10,11 +10,11 @@ which is why that path has nothing to configure — and why it needs no token.
 | `HOST` | `0.0.0.0` | The interface it binds. **A loopback host (`127.0.0.1`, `localhost`, `::1`) is a local install**: no token needed, and the `Host` header is limited to `localhost`, `127.0.0.1` and `[::1]` unless `MCP_ALLOWED_HOSTS` says otherwise. |
 | `MCP_ALLOWED_HOSTS` | unset | Comma-separated hostnames permitted in the `Host` header. **Off when unset.** |
 | `MCP_AUTH_TOKEN` | **none — required for HTTP off loopback** | The bearer token every HTTP request except `GET /healthz` must carry. At least 32 characters. **HTTP on any non-loopback `HOST`, the default included, will not start without it.** On loopback it is optional, and enforced when set. stdio never reads it. |
-| `MCP_TRANSPORT` | `stdio` | Which transport `src/index.js` speaks: `stdio`, or `http` (`streamable-http` is accepted too). `http` reaches `src/http.js`, which serves `POST /mcp`. |
+| `MCP_TRANSPORT` | `stdio` | Which transport `src/index.ts` speaks: `stdio`, or `http` (`streamable-http` is accepted too). `http` reaches `src/http.ts`, which serves `POST /mcp`. |
 | `MCP_CLUSTER_WORKERS` | CPU count | How many HTTP worker processes to fork. **`1` forks nothing.** |
 
-`src/index.js` reads `MCP_TRANSPORT` and nothing else. The HTTP path — `src/http.js`, and the
-app and `src/auth.js` it builds — reads the other five.
+`src/index.ts` reads `MCP_TRANSPORT` and nothing else. The HTTP path — `src/http.ts`, and the
+app and `src/auth.ts` it builds — reads the other five.
 
 **When `MCP_AUTH_TOKEN` is required.** Where the server can be reached decides: a server a
 client spawns is a pipe on the client's own machine, and HTTP bound to loopback is a socket
@@ -89,10 +89,10 @@ MCP_ALLOWED_HOSTS=shared-instruction.example.com,localhost npm run start:http
 
 | Thing | How it is set |
 |---|---|
-| Which file to serve | The path to `src/index.js` in the client's server config. |
+| Which file to serve | The path to `dist/index.js` in the client's server config. |
 | The instruction set | `content/` beside the package. Resolved from the module's own location, not from the working directory, so it does not matter where the client was started from. |
 | The version reported at `initialize` | `package.json`, read at import. |
-| Transport | Which entry point is run: `src/index.js` for stdio, `src/http.js` for HTTP — or `MCP_TRANSPORT=http` on `src/index.js`, which reaches the second one for you. |
+| Transport | Which entry point is run: `dist/index.js` for stdio, `dist/http.js` for HTTP — or `MCP_TRANSPORT=http` on `dist/index.js`, which reaches the second one for you. |
 
 ## What this page deliberately does not document
 
@@ -103,7 +103,7 @@ here — but it should not arrive silently.
 
 ## Why the content root is resolved from the module
 
-`src/version.js` builds `CONTENT_DIR` from `import.meta.url` rather than from `process.cwd()`.
+`src/version.ts` builds `CONTENT_DIR` from `import.meta.url` rather than from `process.cwd()`.
 A client that spawns the server from an arbitrary working directory would otherwise read a
 different — or no — instruction set, and the failure would look like an empty connector
 rather than a path bug. The HTTP transport is bound by the same rule and resolves its

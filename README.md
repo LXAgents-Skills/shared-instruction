@@ -14,7 +14,7 @@ instead of cloning or vendoring a copy of them.
 - **Surface:** one tool per markdown file in `content/`, and nothing else. Every one is
   read-only and every one takes no arguments. For the current count,
   enumerate the connector's tools.
-- **Requirements:** Node >= 20. ESM, no build step.
+- **Requirements:** Node >= 20. TypeScript (strict, ESM) compiled to `dist/` by `npm install`.
 
 ## Key features
 
@@ -25,7 +25,7 @@ instead of cloning or vendoring a copy of them.
   their forge (`lxagents_skills_shared_instruction_github_api`, `lxagents_skills_shared_instruction_gitlab_ci`, …), because four filenames exist on both forges.
 - **No tool takes an argument.** A tool names one file, so there is no path to pass, no
   lookup to guess at, and **nothing for a caller to traverse with**. This is the structural
-  replacement for a path argument, not a weaker check on one: `test/server.test.js`
+  replacement for a path argument, not a weaker check on one: `test/server.test.ts`
   asserts that every tool's schema has no properties and no required fields, so a future
   tool that grows an argument has to be added deliberately.
 - **Read once, at boot.** The whole set is read into a frozen map when the process starts.
@@ -43,14 +43,16 @@ instead of cloning or vendoring a copy of them.
   stores no model identifier does not carry a row about one, and the narrowing is visible
   in a diff rather than buried in a payload.
 - **Each tool ends in itself.** No tool links to, names, or sends the reader to another;
-  only `lxagents_skills_shared_instruction_automation` names them all. `test/server.test.js` fails if one does.
+  only `lxagents_skills_shared_instruction_automation` names them all. `test/server.test.ts` fails if one does.
 
 ## Quick start
 
 ```bash
-npm install
-npm test
+npm install   # also compiles src/ to dist/, through the prepare script
+npm test      # builds, type-checks src/ and test/, then runs the suite
 ```
+
+`npm run build` recompiles after you change a file in `src/`; the start scripts run `dist/`.
 
 Serve it to an MCP client over stdio:
 
@@ -89,7 +91,7 @@ A local stdio server, named `lxagents-shared-instruction`:
   "mcpServers": {
     "lxagents-shared-instruction": {
       "command": "node",
-      "args": ["src/index.js"],
+      "args": ["dist/index.js"],
       "cwd": "/path/to/shared-instruction"
     }
   }
@@ -131,12 +133,12 @@ still absent from the tool surface until the session restarts.
 ```bash
 docker build -t lxagents-shared-instruction:6.0.4 .
 docker run --rm -i lxagents-shared-instruction:6.0.4                            # stdio
-docker run --rm -p 3000:3000 -e MCP_AUTH_TOKEN lxagents-shared-instruction:6.0.4 node src/http.js  # HTTP
+docker run --rm -p 3000:3000 -e MCP_AUTH_TOKEN lxagents-shared-instruction:6.0.4 node dist/http.js  # HTTP
 ```
 
 A pinned, non-root image for hosts that cannot run Node 20. The default entrypoint is
 stdio, so `-i` is not optional there — without it the server sees closed stdin and exits.
-Overriding the entrypoint to `src/http.js` serves on port 3000 instead, and `-p` is what
+Overriding the entrypoint to `dist/http.js` serves on port 3000 instead, and `-p` is what
 makes that reachable; `EXPOSE` documents the port, it does not publish it. The HTTP form
 binds every interface inside the container, so it exits unless `MCP_AUTH_TOKEN` is set; stdio
 never needs it. Details in
