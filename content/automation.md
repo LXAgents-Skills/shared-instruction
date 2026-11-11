@@ -21,6 +21,7 @@ Read this once, at the start of every session. It is the only tool you read unpr
 ## Every session that will change something
 
 - `lxagents_skills_shared_instruction_shared_instructions` — the request will write a file, commit, or change state: it holds the three permission gates (plan, pull request, merge).
+- `lxagents_skills_shared_instruction_code_optimization` — the request will write, move or review code, in any language: one responsibility per unit, and the audit when asked to optimize or refactor.
 
 ## Planning and working
 
