@@ -1,6 +1,6 @@
 ---
 name: root-index
-description: Router for LXAgents-MCP/shared-instruction — every local index, the shared set, and the override table.
+description: Router for LXAgents-Skills/shared-instruction — every local index, the shared set, and the override table.
 ---
 
 # Root Index

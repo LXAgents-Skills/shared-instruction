@@ -20,7 +20,7 @@ the set. Three conditions keep the two apart, and all three are required:
 1. **`mcps/` is gitignored.** It never enters your repository's history. A committed
    `./mcps/` *is* a vendored copy, and should be treated as one.
 2. **Instructions are still read through the connector.** Never open
-   `./mcps/LXAgents-MCP/shared-instruction/content/…` by file path — that is reading a
+   `./mcps/LXAgents-Skills/shared-instruction/content/…` by file path — that is reading a
    snapshot, which is exactly the drift the connector exists to remove.
 3. **Nothing is copied out of it** into `.agents/`. The adoption rules are unchanged: if
    you can read it from the connector, it must not exist in your repository as a file.
@@ -39,7 +39,7 @@ Clones live under `./mcps/`, one directory per owner, one per repository:
 For this repository that is exactly:
 
 ```
-./mcps/LXAgents-MCP/shared-instruction/
+./mcps/LXAgents-Skills/shared-instruction/
 ```
 
 The shape is fixed. It is predictable for tooling, it namespaces by owner so two
@@ -49,14 +49,14 @@ one place you can delete in one command.
 ## 1. Clone it
 
 ```bash
-mkdir -p ./mcps/LXAgents-MCP
-git clone https://github.com/LXAgents-MCP/shared-instruction ./mcps/LXAgents-MCP/shared-instruction
+mkdir -p ./mcps/LXAgents-Skills
+git clone https://github.com/LXAgents-Skills/shared-instruction ./mcps/LXAgents-Skills/shared-instruction
 ```
 
 ## 2. Install and verify
 
 ```bash
-cd ./mcps/LXAgents-MCP/shared-instruction
+cd ./mcps/LXAgents-Skills/shared-instruction
 npm install
 npm test
 ```
@@ -88,7 +88,7 @@ has to be updated.
     "lxagents-shared-instruction": {
       "command": "node",
       "args": ["src/index.js"],
-      "cwd": "./mcps/LXAgents-MCP/shared-instruction"
+      "cwd": "./mcps/LXAgents-Skills/shared-instruction"
     }
   }
 }
@@ -138,13 +138,13 @@ The conventions this repository follows live in the shared instruction set serve
 If the connector is already available in this session, use it and ignore the rest of this
 block. If it is not, install it locally:
 
-    mkdir -p ./mcps/LXAgents-MCP
-    git clone https://github.com/LXAgents-MCP/shared-instruction ./mcps/LXAgents-MCP/shared-instruction
-    cd ./mcps/LXAgents-MCP/shared-instruction && npm install
+    mkdir -p ./mcps/LXAgents-Skills
+    git clone https://github.com/LXAgents-Skills/shared-instruction ./mcps/LXAgents-Skills/shared-instruction
+    cd ./mcps/LXAgents-Skills/shared-instruction && npm install
 
 Then register it as a stdio MCP server named `lxagents-shared-instruction`, with
 `command: node`, `args: ["src/index.js"]`, and
-`cwd: ./mcps/LXAgents-MCP/shared-instruction`. A host serving it over HTTP registers
+`cwd: ./mcps/LXAgents-Skills/shared-instruction`. A host serving it over HTTP registers
 `type: http`, `url: https://<host>/mcp` and an `Authorization: Bearer <token>` header
 instead, under the same name; without the header every request is a `401`.
 
@@ -163,7 +163,7 @@ A clone is a snapshot, so it goes stale — that is the cost you accepted by not
 published package.
 
 ```bash
-cd ./mcps/LXAgents-MCP/shared-instruction && git pull && npm install
+cd ./mcps/LXAgents-Skills/shared-instruction && git pull && npm install
 ```
 
 Then **restart the server**. The set is read once at boot into a frozen map, so a
@@ -175,7 +175,7 @@ To see what you are running against, `npm run inspect` lists the live surface, a
 ## Removing it
 
 ```bash
-rm -rf ./mcps/LXAgents-MCP/shared-instruction
+rm -rf ./mcps/LXAgents-Skills/shared-instruction
 ```
 
 Nothing else to undo — that is the point of keeping it out of git. Then add the npm

@@ -6,7 +6,7 @@ commits, pull requests, task workflow, the creators, the directory architecture 
 instead of cloning or vendoring a copy of them.
 
 - **Server id:** `lxagents-shared-instruction`
-- **Package:** `@lxagents-mcp/shared-instruction`
+- **Package:** `@lxagents-skills/shared-instruction`
 - **Transport:** stdio, or stateless HTTP at `POST /mcp` for running it as a service at a
   fixed address. Both serve the same tool surface. **HTTP requires a bearer token**
   (`MCP_AUTH_TOKEN`); stdio, which a client spawns on its own machine, needs none.
@@ -89,7 +89,7 @@ A local stdio server, named `lxagents-shared-instruction`:
 ```
 
 For npm consumers the package exposes that binary, so `command: "npx"` with
-`args: ["-y", "@lxagents-mcp/shared-instruction"]` works without a checkout. See
+`args: ["-y", "@lxagents-skills/shared-instruction"]` works without a checkout. See
 [`wiki/guides/connect-a-repository.md`](wiki/guides/connect-a-repository.md).
 
 A server running at a fixed address is reached over HTTP instead:

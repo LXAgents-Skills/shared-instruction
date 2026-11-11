@@ -10,7 +10,7 @@ the agent-facing orientation and links out rather than restating.
 
 ## What this repository is
 
-`LXAgents-MCP/shared-instruction` — an MCP server that serves the LXAgents shared agent
+`LXAgents-Skills/shared-instruction` — an MCP server that serves the LXAgents shared agent
 instruction set as `lxagents-shared-instruction`. Plain JavaScript, Node ESM, no build step.
 
 It is both the **producer** of the shared set and a **consumer** of it. See

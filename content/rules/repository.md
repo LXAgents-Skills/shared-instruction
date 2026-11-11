@@ -221,7 +221,7 @@ folder is a real repository and can hold dependencies. What is forbidden is a
 capability sourced from outside this workspace being brought into the root.
 
 **Already gone, and not coming back.** `anthropics/skills/` and
-`LXAgents-MCP/shared-instruction/` were both cloned here, and both were deleted on
+`LXAgents-Skills/shared-instruction/` were both cloned here, and both were deleted on
 2026-10-04. If you need either, clone it elsewhere on your machine — outside this
 workspace's root — and work there.
 

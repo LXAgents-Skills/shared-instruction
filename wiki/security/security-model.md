@@ -1,6 +1,6 @@
 # Security Model
 
-The security posture of `LXAgents-MCP/shared-instruction` specifically. It is scoped to
+The security posture of `LXAgents-Skills/shared-instruction` specifically. It is scoped to
 this repository and describes nothing about the repositories that consume the set — each
 one keeps its own model, and they are deliberately not merged.
 
@@ -259,7 +259,7 @@ That is recorded here rather than left to be assumed.
 
 ## Reporting something
 
-Open an issue on `LXAgents-MCP/shared-instruction`. If the finding is about content that
+Open an issue on `LXAgents-Skills/shared-instruction`. If the finding is about content that
 would direct another repository's agent to do something harmful, say so in the title — it
 is the class of bug that reaches furthest fastest, and it is fixed by a release rather
 than a patch on one machine.

@@ -55,7 +55,7 @@ From npm, the package exposes that same file as a bin, so no checkout is needed:
   "mcpServers": {
     "lxagents-shared-instruction": {
       "command": "npx",
-      "args": ["-y", "@lxagents-mcp/shared-instruction"]
+      "args": ["-y", "@lxagents-skills/shared-instruction"]
     }
   }
 }

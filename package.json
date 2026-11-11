@@ -1,5 +1,5 @@
 {
-  "name": "@lxagents-mcp/shared-instruction",
+  "name": "@lxagents-skills/shared-instruction",
   "version": "5.0.0",
   "description": "Read-only MCP server that delivers the LXAgents shared agent instruction set — branch strategy, commit conventions, rules, creators — plus a registry of the sibling instruction and security servers.",
   "type": "module",
@@ -30,11 +30,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/LXAgents-MCP/shared-instruction.git"
+    "url": "git+https://github.com/LXAgents-Skills/shared-instruction.git"
   },
-  "homepage": "https://github.com/LXAgents-MCP/shared-instruction#readme",
+  "homepage": "https://github.com/LXAgents-Skills/shared-instruction#readme",
   "bugs": {
-    "url": "https://github.com/LXAgents-MCP/shared-instruction/issues"
+    "url": "https://github.com/LXAgents-Skills/shared-instruction/issues"
   },
   "keywords": [
     "mcp",
