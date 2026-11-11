@@ -35,11 +35,11 @@ prompts, no resources. Reachable over stdio or stateless HTTP at
 
 | Tool | Serves |
 |---|---|
-| `automation` | `automation.md` — read it first, every session; it lists every other tool and the condition that activates each. |
-| `plan_creator` | `creators/plan-creator.md` |
-| `branching_strategy` | `git/branching-strategy.md` |
-| `commit_conventions` | `git/commit-conventions.md` |
-| `discovery_protocol` | `rules/discovery-protocol.md` |
+| `lxagents_skills_shared_instruction_automation` | `automation.md` — read it first, every session; it lists every other tool and the condition that activates each. |
+| `lxagents_skills_shared_instruction_plan_creator` | `creators/plan-creator.md` |
+| `lxagents_skills_shared_instruction_branching_strategy` | `git/branching-strategy.md` |
+| `lxagents_skills_shared_instruction_commit_conventions` | `git/commit-conventions.md` |
+| `lxagents_skills_shared_instruction_discovery_protocol` | `rules/discovery-protocol.md` |
 | …and one tool for every other file | Named after its own filename; the GitHub and GitLab pages are named for their forge. |
 
 The complete list is whatever the client enumerates from `tools/list`. It is deliberately
@@ -54,7 +54,7 @@ A tool makes an instruction set something the model *may decide* to call, and a 
 sees the full list — name and description — before deciding anything. That is what lets a
 repository route on a description without reading a body.
 
-A session reads **one** tool at the start, `automation`, which lists every other tool and the
+A session reads **one** tool at the start, `lxagents_skills_shared_instruction_automation`, which lists every other tool and the
 condition that activates it. Each of the others fires only when its condition is true, and
 each is complete on its own — none points to another. A session that only branches and
 commits pays for the hub and two files rather than the whole set — which is the entire point

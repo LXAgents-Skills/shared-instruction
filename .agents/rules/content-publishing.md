@@ -46,7 +46,7 @@ fit.
 `npm test` checks those and pins the properties they do not cover: `name` and `description`
 frontmatter on every file, files and tools as a bijection in **both** directions, no tool
 declaring an input schema, every file served byte-for-byte as it sits on disk, no tool
-but `automation` pointing at another, and `automation` routing every tool once and staying
+but `lxagents_skills_shared_instruction_automation` pointing at another, and `lxagents_skills_shared_instruction_automation` routing every tool once and staying
 under its size budget. Run it before committing anything under `content/`.
 
 ## Each tool ends in itself

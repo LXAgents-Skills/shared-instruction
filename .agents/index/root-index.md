@@ -13,7 +13,7 @@ Read exactly one branch per task, plus `memory-index.md`.
 | Index | Scope | Load when |
 |---|---|---|
 | [`agents-index.md`](agents-index.md) | `.agents/` — this repository's own instruction set | You need a rule specific to this repository, including anything about publishing `content/`. |
-| [`../../content/automation.md`](../../content/automation.md) | `content/` — the shared instruction set this repository publishes; the `automation` tool lists every shared tool and when it fires | You need a branching, commit, pull request, planning, or creator convention. |
+| [`../../content/automation.md`](../../content/automation.md) | `content/` — the shared instruction set this repository publishes; the `lxagents_skills_shared_instruction_automation` tool lists every shared tool and when it fires | You need a branching, commit, pull request, planning, or creator convention. |
 | [`agent-wiki-index.md`](agent-wiki-index.md) | `.agents/wiki/` agent knowledge | You need orientation before touching code. |
 | [`project-wiki-index.md`](project-wiki-index.md) | `wiki/` human documentation | You need to read or write documentation a person will read. |
 | [`memory-index.md`](memory-index.md) | `.agents/memory/` dynamic state | You need prior task state, or must record progress. |

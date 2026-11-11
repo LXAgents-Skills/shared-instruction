@@ -60,8 +60,8 @@ is not resolving", and it looks like a broken server rather than a stale session
 ## 2. Declare the tools
 
 Add a **Shared instruction tools** block to the repository's `AGENTS.md`: a first row for
-`automation`, which the agent reads at the start of every session, and a row for each
-convention the repository uses. `automation` lists every tool and the condition that
+`lxagents_skills_shared_instruction_automation`, which the agent reads at the start of every session, and a row for each
+convention the repository uses. `lxagents_skills_shared_instruction_automation` lists every tool and the condition that
 activates it, so the block can stay short. Ask the owner before writing anything — license,
 initial version, project intent — and never invent an answer.
 
@@ -100,10 +100,10 @@ Never delete memory, wiki pages, indexes, or `repository.md`.
 
 Ask the agent to confirm:
 
-- `AGENTS.md` tells the agent to read `automation` at the start of every session, and to
+- `AGENTS.md` tells the agent to read `lxagents_skills_shared_instruction_automation` at the start of every session, and to
   say plainly in its first message if the connector is unavailable.
 - `AGENTS.md` declares the **four mandatory tools** in its Shared instruction tools block —
-  `plan_creator`, `branching_strategy`, `commit_conventions`, `discovery_protocol` — and
+  `lxagents_skills_shared_instruction_plan_creator`, `lxagents_skills_shared_instruction_branching_strategy`, `lxagents_skills_shared_instruction_commit_conventions`, `lxagents_skills_shared_instruction_discovery_protocol` — and
   carries the three permission gates **inline**, not deferred to a tool.
 - **Every tool name in that block is one the connector actually publishes.** Tool names
   are derived from filenames, so a block copied from an older set will name tools that no

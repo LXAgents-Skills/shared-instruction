@@ -50,3 +50,11 @@ Landed: `TOOL_PREFIX` and `toolId()` in `src/instructions/from-content.js`; `too
 names the prefixed hub. Tests assert the prefix and underscores-only, and call tools by
 `toolId(base)`; the ends-in-itself detector still matches overridden tools by their base name.
 70/70.
+
+### Task 3 — docs/prefixed-tool-ids
+
+Landed: every backticked tool id in `AGENTS.md`, `README.md`, the current wiki pages,
+`.agents/rules/content-publishing.md`, `.agents/rules/set-mirrors.md` and `root-index.md` is
+the prefixed id; the naming rules in `mcp-surface.md` and `AGENTS.md` state the prefix, and the
+`TOOL_NAME` row says `{0,127}`. Release logs, task records and the state file keep the ids they
+were written with.

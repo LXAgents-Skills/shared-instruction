@@ -19,7 +19,7 @@ npm test
 The suite is six files and a shared harness. `test/server.test.js` drives a real MCP client over an in-memory
 transport and covers the frontmatter contract, the file-to-tool bijection in both
 directions, name derivation and overrides, uniqueness and descriptions, the zero-argument
-claim, byte-for-byte payload fidelity, total-served equality, reachability, the `automation`
+claim, byte-for-byte payload fidelity, total-served equality, reachability, the `lxagents_skills_shared_instruction_automation`
 hub, that no tool points at another, and the read-only claim. The five `test/http.*.test.js` files drive
 a real client against a real listening process and covers the HTTP transport: the two
 transports agreeing, `/healthz`, the 405 and the 404, the SSE routes being **gone**, the
