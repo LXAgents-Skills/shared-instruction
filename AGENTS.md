@@ -85,6 +85,7 @@ not a release.
 | Write a commit message | `lxagents_skills_shared_instruction_commit_conventions` | [`content/git/commit-conventions.md`](content/git/commit-conventions.md) |
 | Notice a rule that should exist | `lxagents_skills_shared_instruction_discovery_protocol` | [`content/rules/discovery-protocol.md`](content/rules/discovery-protocol.md) |
 | Open or update a pull request | `lxagents_skills_shared_instruction_pull_request_template` | [`content/git/pull-request-template.md`](content/git/pull-request-template.md) |
+| Write, move or review code, in any language | `lxagents_skills_shared_instruction_code_optimization` | [`content/rules/code-optimization.md`](content/rules/code-optimization.md) |
 | Write to any `model_name` column | `lxagents_skills_shared_instruction_model_naming_convention` | [`content/rules/model-naming-convention.md`](content/rules/model-naming-convention.md) |
 
 `lxagents_skills_shared_instruction_automation` is read at the start of every session. `lxagents_skills_shared_instruction_plan_creator`, `lxagents_skills_shared_instruction_branching_strategy`,
