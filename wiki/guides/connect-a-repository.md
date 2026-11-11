@@ -23,7 +23,7 @@ to the clone — the full procedure, including where to put the clone, is in
 
 **There is also a remote form**, for a server running at a fixed address rather than
 spawned per client. Start it with `npm run start:http` — it binds `0.0.0.0:3000` unless
-`PORT` says otherwise, and it **will not start without `MCP_AUTH_TOKEN`** — and register it by
+`PORT` says otherwise, and on any address but loopback it **will not start without `MCP_AUTH_TOKEN`** — and register it by
 URL, sending the same token as a bearer credential:
 
 ```json

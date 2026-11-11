@@ -74,10 +74,11 @@ selected. The two files stay separate because `package.json`'s `start:http` and 
 hop than the other four servers in the organization, and the reason is a file that is not
 allowed to move.
 
-**The HTTP transport requires a bearer token, and stdio does not.** `src/auth.js` reads
+**HTTP off loopback requires a bearer token; stdio and HTTP on loopback do not.** `src/auth.js` reads
 `MCP_AUTH_TOKEN` and `src/app.js` mounts its middleware after the `Host` allow-list and ahead of
 the body parser and every route, with `GET /healthz` the one exemption. `createApp` throws
-without a usable token, and `src/http.js` checks first in the primary so a missing one is a single
+without a usable token unless built with `requireToken: false` (which `src/http.js` does only
+for a loopback `HOST`, adding a `localhost` `Host` allow-list), and `src/http.js` checks first in the primary so a missing one is a single
 line and exit code `1` rather than the same line from each worker and a respawn loop. The stdio
 path never imports `src/auth.js` and never reads the variable. The reasoning is in the
 [security model](../security/security-model.md).

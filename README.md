@@ -8,8 +8,9 @@ instead of cloning or vendoring a copy of them.
 - **Server id:** `lxagents-shared-instruction`
 - **Package:** `@lxagents-skills/shared-instruction`
 - **Transport:** stdio, or stateless HTTP at `POST /mcp` for running it as a service at a
-  fixed address. Both serve the same tool surface. **HTTP requires a bearer token**
-  (`MCP_AUTH_TOKEN`); stdio, which a client spawns on its own machine, needs none.
+  fixed address. Both serve the same tool surface. **HTTP as a server requires a bearer token**
+  (`MCP_AUTH_TOKEN`). A local install needs none: stdio never reads it, and HTTP bound to
+  `HOST=127.0.0.1` starts without one.
 - **Surface:** one tool per markdown file in `content/`, and nothing else. Every one is
   read-only and every one takes no arguments. For the current count,
   enumerate the connector's tools.
@@ -57,7 +58,14 @@ Serve it to an MCP client over stdio:
 npm start
 ```
 
-Or as a service over HTTP, which will not start without a token of at least 32 characters:
+Or over HTTP on this machine only, with no token:
+
+```bash
+HOST=127.0.0.1 npm run start:http
+```
+
+Or as a server over HTTP, on every interface, which will not start without a token of at least
+32 characters:
 
 ```bash
 export MCP_AUTH_TOKEN="$(openssl rand -hex 32)"
@@ -130,7 +138,8 @@ A pinned, non-root image for hosts that cannot run Node 20. The default entrypoi
 stdio, so `-i` is not optional there — without it the server sees closed stdin and exits.
 Overriding the entrypoint to `src/http.js` serves on port 3000 instead, and `-p` is what
 makes that reachable; `EXPOSE` documents the port, it does not publish it. The HTTP form
-exits unless `MCP_AUTH_TOKEN` is set, and stdio never needs it. Details in
+binds every interface inside the container, so it exits unless `MCP_AUTH_TOKEN` is set; stdio
+never needs it. Details in
 [Docker](wiki/environments/docker.md).
 
 ## Documentation

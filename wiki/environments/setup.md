@@ -70,11 +70,14 @@ serves the same tools at `POST /mcp`; see
 ```bash
 npm start             # stdio
 npm run start:stdio   # the same thing, named for what it is
-MCP_AUTH_TOKEN="$(openssl rand -hex 32)" npm run start:http   # HTTP on 0.0.0.0:3000, or $PORT
+HOST=127.0.0.1 npm run start:http                             # HTTP on this machine only, no token
+MCP_AUTH_TOKEN="$(openssl rand -hex 32)" npm run start:http   # HTTP as a server on 0.0.0.0:3000, or $PORT
 ```
 
-**HTTP needs a token and stdio does not.** `start:http` exits with code `1` and one line on
-stderr if `MCP_AUTH_TOKEN` is unset or shorter than 32 characters. The one-liner above makes a
+**A server needs a token; a local install does not.** stdio never reads `MCP_AUTH_TOKEN`, and
+neither does HTTP bound to loopback unless you set it. On any other `HOST`, the default
+included, `start:http` exits with code `1` and one line on stderr if `MCP_AUTH_TOKEN` is unset
+or shorter than 32 characters. The one-liner above makes a
 throwaway token for a throwaway run; for anything a client will reach, generate it once, keep it,
 and give the same value to the clients. See [Environment variables](env.md).
 

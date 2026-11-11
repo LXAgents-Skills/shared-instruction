@@ -100,12 +100,11 @@ layout is for, but nothing depends on it.
 **This page is about the local stdio path, and stdio is the right default here.** A clone
 you run per client needs no port, no host, and no process kept alive between sessions.
 
-The server also speaks HTTP, for when you want one instance serving several clients from a
-fixed address rather than one per client:
+The server also speaks HTTP, for when you want one instance serving several clients rather
+than one per client. **Bound to loopback it is still a local install and needs no token:**
 
 ```bash
-export MCP_AUTH_TOKEN="$(openssl rand -hex 32)"   # required: HTTP will not start without it
-npm run start:http    # binds 0.0.0.0:3000, or $PORT
+HOST=127.0.0.1 npm run start:http    # this machine only, no token; $PORT or 3000
 ```
 
 ```json
@@ -113,14 +112,22 @@ npm run start:http    # binds 0.0.0.0:3000, or $PORT
   "mcpServers": {
     "lxagents-shared-instruction": {
       "type": "http",
-      "url": "http://localhost:3000/mcp",
-      "headers": { "Authorization": "Bearer ${MCP_AUTH_TOKEN}" }
+      "url": "http://localhost:3000/mcp"
     }
   }
 }
 ```
 
-The same tools either way, but only HTTP needs the token; the stdio form above needs none. Set
+Bound to every interface (the default, `0.0.0.0`) it is a server, and it will not start without
+a token; every client then sends it:
+
+```bash
+export MCP_AUTH_TOKEN="$(openssl rand -hex 32)"
+npm run start:http
+```
+
+with `"headers": { "Authorization": "Bearer ${MCP_AUTH_TOKEN}" }` added to the entry above. The
+same tools either way. Set
 `MCP_ALLOWED_HOSTS` to a comma-separated list of hostnames if you expose it beyond loopback — see
 [Security model](../security/security-model.md).
 
