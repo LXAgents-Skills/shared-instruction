@@ -44,7 +44,8 @@ and `agents_entry_point`, the file count, the four-field frontmatter, and "call 
 session start".*
 
 **What this is.** A read-only MCP server that serves the LXAgents shared agent instruction
-set. Plain JavaScript, Node ESM, no build step. Published as
+set. Strict TypeScript, Node ESM, compiled by `tsc` to `dist/` (built by `prepare` on
+`npm install`, never committed) since `6.0.5`. Published as
 `@lxagents-skills/shared-instruction`; the server name is `lxagents-shared-instruction`, renamed
 from `lxagents-agents-base` in `2.0.0`. Every consuming repository named the old one in
 its client configuration, so each has to update it.
@@ -91,16 +92,16 @@ for a caller to traverse with; the zero-argument design is the replacement for t
 traversal check, not a weaker version of it.
 
 **Transports.** Two, both calling the same `createServer()`, so the surface is identical by
-construction: `src/index.js` (stdio by default, and `MCP_TRANSPORT=http` to reach the
-other) and `src/http.js`, which binds the port and serves the express app in `src/app.js` at
+construction: `src/index.ts` (stdio by default, and `MCP_TRANSPORT=http` to reach the
+other) and `src/http.ts`, which binds the port and serves the express app in `src/app.ts` at
 `POST /mcp` and `GET /healthz`. **The HTTP transport is stateless** — a fresh `McpServer`
 and a fresh `StreamableHTTPServerTransport` per request, no session id minted, and no
 session store. It replaced an SSE transport at `GET /sse` and `POST /message` whose
 `SSEServerTransport` was **deprecated in the SDK**; that removal is **breaking for every
 deployed client** and was a deliberate, owner-reviewed decision — see
-`.agents/memory/tasks/sse-to-mcp-transport.md`. The application is in `src/app.js` and does
-not listen, which is what lets `src/http.js` own the port, the startup lines and the drain
-without the two being tangled. `src/index.js` reaches it by **dynamic import**, so express
+`.agents/memory/tasks/sse-to-mcp-transport.md`. The application is in `src/app.ts` and does
+not listen, which is what lets `src/http.ts` own the port, the startup lines and the drain
+without the two being tangled. `src/index.ts` reaches it by **dynamic import**, so express
 never loads into a stdio process whose stdout is the JSON-RPC channel. Six environment
 variables are read, one of them a secret: `PORT`, `HOST`, `MCP_ALLOWED_HOSTS`,
 `MCP_AUTH_TOKEN`, `MCP_TRANSPORT` and `MCP_CLUSTER_WORKERS`. **The HTTP transport requires
@@ -148,8 +149,9 @@ that distinguishes them is a `tools/list` against `POST /mcp`, or the `version` 
 `initialize`. Polling `/healthz`'s version is enough to *notice* a rollout; confirm the
 content with a tool call before reporting a deploy as done.
 
-**A `Dockerfile` exists, and is not a deployment.** Single stage, `node:22-alpine`,
-`npm ci --ignore-scripts --omit=dev`, `USER node`, entrypoint `node src/index.js`, now with
+**A `Dockerfile` exists, and is not a deployment.** Two stages since `6.0.5` (compile, then a
+runtime stage without the compiler), `node:22-alpine`, `npm ci --ignore-scripts --omit=dev`,
+`USER node`, entrypoint `node dist/index.js`, now with
 `EXPOSE 3000`. There is still no compose file: a compose file encodes a deployment, and
 this repository has none. The image was **never built** — Docker is not installed in the
 environment this was written in, so neither the `EXPOSE` nor the entrypoint override has
