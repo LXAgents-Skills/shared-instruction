@@ -17,7 +17,7 @@
     "start": "node src/index.js",
     "start:stdio": "node src/index.js",
     "start:http": "node src/http.js",
-    "test": "node --test",
+    "test": "node --test test/*.test.js",
     "inspect": "npx @modelcontextprotocol/inspector node src/index.js"
   },
   "engines": {

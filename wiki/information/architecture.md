@@ -12,11 +12,17 @@ src/
   http.js                     entry — the cluster, the port, and the drain
   server.js                   builds the McpServer and registers the tool surface
   version.js                  ROOT, CONTENT_DIR, VERSION, SERVER_NAME
-  tools/
+  instructions/
     from-content.js           generates one tool per file in content/ — the whole surface
 test/
   server.test.js              the surface, over a real client on an in-memory transport
-  http.test.js                the HTTP path, over a real client against a real listener and a real cluster
+  http.routes.test.js         HTTP routes, the same surface as stdio, and request isolation
+  http.hosts.test.js          the Host allow-list
+  http.limits.test.js         the body limit, parse errors, and response headers
+  http.cluster.test.js        the two entry points and the worker pool
+  http.auth.test.js           the bearer token and the refusal to start without one
+  helpers/
+    http-harness.js           starts a real server as a child process and connects to it
 ```
 
 ## The tool surface is generated, not declared

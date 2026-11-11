@@ -30,7 +30,7 @@ It is both the **producer** of the shared set and a **consumer** of it. See
 | `src/auth.js` | The bearer token: `tokenProblem` (is it usable), `configuredToken` (read at call time, trimmed), and `requireBearerToken` (the constant-time middleware). Reached only by the HTTP path. | Anything about who may call the HTTP transport. |
 | `src/http.js` | The HTTP entry point — the cluster primary and workers, the port, the interface, the startup lines, the in-flight set, and the drain. | Anything about a listening server, a worker count, the port, or shutdown. |
 | `Dockerfile` | A pinned, non-root image for hosts that cannot run Node 20. Serves both transports; `EXPOSE 3000`, stdio entrypoint. | The toolchain the image pins, or the install command it runs. |
-| `test/` | `server.test.js` (in-memory) and `http.test.js` (against a real listener and a real cluster, with a token). | Always. Every behavioural change ships with one. |
+| `test/` | `server.test.js` (in-memory), and `http.{routes,hosts,limits,cluster,auth}.test.js` (against a real listener and a real cluster, with a token) sharing `helpers/http-harness.js`. `npm test` runs `test/*.test.js`, so the harness is not run as a suite. | Always. Every behavioural change ships with one. |
 
 There is no `src/server/`, no `src/cli/`, no `src/transport/`, and no `src/content/`
 directory. If a file you are about to edit is under one of those paths, it does not exist
@@ -96,7 +96,7 @@ entrypoint to `src/http.js` for the HTTP form.
   `instructions` string in `src/server.js` both reproduce set text and go stale silently. Grep for a sentence you changed before
   committing — see [`../../rules/set-mirrors.md`](../../rules/set-mirrors.md).
 * **HTTP tests need a token, and so does any server you start by hand.** The harness in
-  `test/http.test.js` hands every child `MCP_AUTH_TOKEN` and the SDK client the matching
+  `test/helpers/http-harness.js` hands every child `MCP_AUTH_TOKEN` and the SDK client the matching
   header; a test that spawns the server any other way, or fetches `/mcp` raw, must do the same
   or it will read a `401` as a failure of the thing it is testing. Blank the variable
   (`MCP_AUTH_TOKEN: ""`) to test the refusal to start.
@@ -106,7 +106,7 @@ entrypoint to `src/http.js` for the HTTP form.
   anything else that needs to say something.
 * **`fetch` cannot set `Host`,** so a Host allow-list cannot be tested through it — it
   drops the header and every request arrives as `127.0.0.1`, which passes or fails for the
-  wrong reason. `test/http.test.js` uses `node:http` for those assertions. If you add one,
+  wrong reason. `requestWithHost` in the harness uses `node:http` for those assertions. If you add one,
   do not "simplify" it back to `fetch`.
 * **Never share an `McpServer` between connections.** It holds per-connection state;
   reusing one delivers responses to the wrong connection. `createServer()` builds a fresh

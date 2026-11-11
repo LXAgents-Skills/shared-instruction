@@ -34,3 +34,14 @@ Branches stack: task 1 from `master`, task `k` from task `k-1`.
 ### Task 1 — plan/code-optimization
 
 Landed: this record and its row in `memory-index.md`.
+
+### Task 2 — test/http-suite-split
+
+Landed: `test/http.test.js` (1476 lines, 47 tests) is five files — `http.routes` (11),
+`http.hosts` (6), `http.limits` (4), `http.cluster` (10), `http.auth` (16) — and
+`test/helpers/http-harness.js`, which holds the token, the entry points and every helper. Test
+bodies moved unchanged with one exception: the two-worker test now waits for the second worker's
+allow-list warning instead of counting it immediately. Running the files in parallel exposed that
+race once in five runs; it was latent before. `npm test` is now `node --test test/*.test.js`, because
+bare `node --test` runs every `.js` under `test/`, the harness included, and reported 71. 70 tests,
+green on six consecutive runs. The pages that described the old file are updated.
