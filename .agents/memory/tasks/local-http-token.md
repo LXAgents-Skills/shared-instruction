@@ -42,3 +42,15 @@ host would turn it into an open door. That risk is stated in the security model 
 ### Task 1 — plan/local-http-token
 
 Landed: this record and its row in `memory-index.md`.
+
+### Task 2 — feat/loopback-without-token
+
+Landed: `isLoopbackHost` and `startupTokenProblem` in `src/auth.js`; `createApp({ requireToken })`
+in `src/app.js`, open only with `requireToken: false` and no token; `src/http.js` passes it for a
+loopback `HOST`, checks `startupTokenProblem(HOST)` in the primary, and logs which mode it is in.
+A token-less local server gets the `Host` allow-list `LOOPBACK_HOSTNAMES` (`localhost`,
+`127.0.0.1`, `[::1]`) unless `MCP_ALLOWED_HOSTS` is set, against DNS rebinding — matching the
+`security` repository. The `security` thread also made `npm run start:http` bind `127.0.0.1`
+with a `--host` flag; that is not done here, because the Render service tracks `master` and its
+start command is not recorded in this repository, so a default bind change could take it off
+`0.0.0.0` unseen. Refusal tests now bind `0.0.0.0`; four tests added. 74/74 on three runs.

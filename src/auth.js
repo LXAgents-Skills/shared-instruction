@@ -4,11 +4,13 @@ import { rpcError } from "./rpc-error.js";
 /**
  * Bearer-token authentication for the HTTP transport.
  *
- * **The transport decides whether a token is needed.** stdio is a pipe that a client spawns on
- * its own machine, so whoever can use it already runs the process and there is nobody to
- * authenticate. HTTP is a socket that anyone who can reach the port can open, so every request
- * to it must prove the caller holds the token — and the server refuses to run HTTP without one,
- * rather than running open and saying so in a log nobody reads.
+ * **Where the server can be reached decides whether a token is needed.** stdio is a pipe that a
+ * client spawns on its own machine, so whoever can use it already runs the process and there is
+ * nobody to authenticate. HTTP bound to a loopback address is the same local install over a
+ * socket: only this machine can open it, so a token is optional there. HTTP bound to any other
+ * address is a server that anyone who can reach the port can open, so every request must prove
+ * the caller holds the token — and the server refuses to run without one, rather than running
+ * open and saying so in a log nobody reads.
  *
  * Nothing in this file is reached by the stdio entry point, and `src/index.js` never reads
  * `MCP_AUTH_TOKEN` on that path.
@@ -22,6 +24,37 @@ import { rpcError } from "./rpc-error.js";
  * `openssl rand -hex 16` produces at the very least, and the documented command produces 64.
  */
 export const MIN_TOKEN_LENGTH = 32;
+
+/**
+ * Whether `host` is a loopback address, so that a socket bound to it is reachable only from
+ * this machine: `localhost`, any `127.x.x.x`, or `::1` (bracketed or not).
+ *
+ * `0.0.0.0` and `::` are not loopback — they bind every interface — and neither is a hostname
+ * that merely resolves to loopback today, because that can change without this process knowing.
+ *
+ * @param {string} host
+ * @returns {boolean}
+ */
+export function isLoopbackHost(host) {
+  const value = String(host ?? "").trim().toLowerCase().replace(/^\[(.*)\]$/, "$1");
+  return value === "localhost" || value === "::1" || /^127(\.\d{1,3}){3}$/.test(value);
+}
+
+/**
+ * Why HTTP bound to `host` cannot start with `token`, or `null` when it can.
+ *
+ * Off loopback a usable token is required. On loopback none is needed, but a token that was set
+ * is still checked: setting one is asking for it, and quietly running open instead would be a
+ * downgrade nobody chose.
+ *
+ * @param {string} host
+ * @param {string} [token]
+ * @returns {string | null}
+ */
+export function startupTokenProblem(host, token = configuredToken()) {
+  if (token === "" && isLoopbackHost(host)) return null;
+  return tokenProblem(token);
+}
 
 /**
  * The configured token, or an empty string when there is none.

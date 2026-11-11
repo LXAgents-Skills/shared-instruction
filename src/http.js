@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import cluster from "node:cluster";
 import { availableParallelism } from "node:os";
-import { allowedHosts, createApp } from "./app.js";
-import { MIN_TOKEN_LENGTH, tokenProblem } from "./auth.js";
+import { LOOPBACK_HOSTNAMES, allowedHosts, createApp } from "./app.js";
+import { MIN_TOKEN_LENGTH, configuredToken, isLoopbackHost, startupTokenProblem } from "./auth.js";
 import { SERVER_NAME, VERSION } from "./version.js";
 
 /**
@@ -24,6 +24,12 @@ import { SERVER_NAME, VERSION } from "./version.js";
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || "0.0.0.0";
+
+/**
+ * Whether this bind is a server or a local install. A loopback bind is reachable only from this
+ * machine, so it may run without a token; every other bind, including the default, needs one.
+ */
+const LOCAL_ONLY = isLoopbackHost(HOST);
 
 /**
  * Where the process says things.
@@ -95,19 +101,29 @@ function startWorker() {
    */
   const inFlight = new Set();
 
-  const server = createApp({ inFlight }).listen(PORT, HOST, () => {
+  const server = createApp({ inFlight, requireToken: !LOCAL_ONLY }).listen(PORT, HOST, () => {
     const where = HOST === "0.0.0.0" ? "all interfaces" : HOST;
     log(`${SERVER_NAME} ${VERSION} serving Skill MCP over http on :${PORT}/mcp (${where})`);
 
-    // The token is required for the process to be here at all, so this line is a statement
-    // of fact and not a warning. It never carries the value.
-    log(`${SERVER_NAME} ${VERSION} bearer token required on every route except GET /healthz.`);
+    // Which of the two it is, said once per worker. Neither line ever carries the value.
+    if (configuredToken() !== "") {
+      log(`${SERVER_NAME} ${VERSION} bearer token required on every route except GET /healthz.`);
+    } else {
+      log(
+        `${SERVER_NAME} ${VERSION} no bearer token: ${HOST} is loopback, so only this machine can connect. ` +
+          "Set MCP_AUTH_TOKEN to require one, and never put a proxy in front of this without it.",
+      );
+    }
 
     // Said out loud, because the default is the unguarded one. Someone reading a container's
     // startup log is the only person who can act on it, and a control that is off silently
     // is worse than no control at all — it reads as present. Printed once per worker, which
     // is one line per process that genuinely holds the port.
-    if (allowedHosts().length === 0) {
+    if (allowedHosts().length === 0 && LOCAL_ONLY && configuredToken() === "") {
+      log(
+        `${SERVER_NAME} ${VERSION} MCP_ALLOWED_HOSTS is unset, so the Host header must be one of ${LOOPBACK_HOSTNAMES.join(", ")}.`,
+      );
+    } else if (allowedHosts().length === 0) {
       log(`${SERVER_NAME} ${VERSION} MCP_ALLOWED_HOSTS is unset, so no Host header allow-list is applied.`);
     }
   });
@@ -174,12 +190,13 @@ function startPrimary() {
   //
   // `exitCode` and a return, not `process.exit()`: nothing is listening yet, so the process
   // ends on its own once the line is written, and the line is never cut off.
-  const problem = tokenProblem();
+  const problem = startupTokenProblem(HOST);
   if (problem) {
     log(
-      `${SERVER_NAME} ${VERSION} will not start the HTTP transport: ${problem}. ` +
+      `${SERVER_NAME} ${VERSION} will not start the HTTP transport on ${HOST}: ${problem}. ` +
         `Set MCP_AUTH_TOKEN to a secret of at least ${MIN_TOKEN_LENGTH} characters, for example ` +
-        "the output of: openssl rand -hex 32. stdio needs no token.",
+        "the output of: openssl rand -hex 32. stdio needs no token, and neither does HTTP on " +
+        "HOST=127.0.0.1 when MCP_AUTH_TOKEN is unset.",
     );
     process.exitCode = 1;
     return;
