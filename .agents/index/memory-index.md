@@ -64,3 +64,4 @@ the same commit that creates it.
 | [`../memory/tasks/replace-tool-contents.md`](../memory/tasks/replace-tool-contents.md) | Replacing every published tool with the owner's re-created set, self-contained tools, the `automation` hub, the `release/{version}` branch form; the `4.0.0` release. |
 | [`../memory/tasks/http-token-auth.md`](../memory/tasks/http-token-auth.md) | Requiring a bearer token on the HTTP transport while stdio stays open, and the breaking release that follows. |
 | [`../memory/tasks/skill-mcp-migration.md`](../memory/tasks/skill-mcp-migration.md) | Moving to the LXAgents-Skills organization and the Skill MCP instruction vocabulary, with the MCP SDK surface intact. |
+| [`../memory/tasks/code-optimization.md`](../memory/tasks/code-optimization.md) | The 6.0.1 cleanup: the HTTP test suite split by subject and one JSON-RPC error helper. |
