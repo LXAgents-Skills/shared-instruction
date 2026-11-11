@@ -24,7 +24,10 @@ test("with no allow-list set, nothing is refused", async () => {
 });
 
 test("the startup line announces that no allow-list is applied", async () => {
-  await withServer({}, async ({ output }) => {
+  await withServer({}, async ({ output, waitForOutput }) => {
+    // Each worker writes this line just after its startup line, and readiness waits only for the
+    // startup line, so the line is waited for rather than read at once.
+    await waitForOutput("MCP_ALLOWED_HOSTS is unset");
     assert.match(output(), /MCP_ALLOWED_HOSTS is unset, so no Host header allow-list is applied/);
   });
 });
@@ -78,7 +81,10 @@ test("the allow-list guards the health check too", async () => {
 test("setting MCP_ALLOWED_HOSTS silences the warning, so neither can pass by accident", async () => {
   await withServer(
     { env: { MCP_ALLOWED_HOSTS: "shared-instruction.example.test" } },
-    async ({ output }) => {
+    async ({ output, waitForOutput }) => {
+      // Wait for the line written just before the warning would be, so its absence means
+      // something rather than that it has not arrived yet.
+      await waitForOutput("bearer token required on every route");
       assert.doesNotMatch(output(), /MCP_ALLOWED_HOSTS is unset/);
       assert.doesNotMatch(output(), /no Host header allow-list is applied/);
     }
@@ -89,8 +95,9 @@ test("an allow-list of nothing but separators still counts as unset", async () =
   // `MCP_ALLOWED_HOSTS=` is a shell that lost the value, and `MCP_ALLOWED_HOSTS= , ,` is a
   // paste that did. Treating either as "allow nothing" would refuse every request with a
   // message that names no host at all.
-  await withServer({ env: { MCP_ALLOWED_HOSTS: " , , " } }, async ({ url, output }) => {
+  await withServer({ env: { MCP_ALLOWED_HOSTS: " , , " } }, async ({ url, output, waitForOutput }) => {
     assert.equal((await requestWithHost({ url, host: "anything.test" })).status, 200);
+    await waitForOutput("MCP_ALLOWED_HOSTS is unset");
     assert.match(output(), /MCP_ALLOWED_HOSTS is unset/);
   });
 });

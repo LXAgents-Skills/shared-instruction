@@ -58,3 +58,7 @@ Landed: every backticked tool id in `AGENTS.md`, `README.md`, the current wiki p
 the prefixed id; the naming rules in `mcp-surface.md` and `AGENTS.md` state the prefix, and the
 `TOOL_NAME` row says `{0,127}`. Release logs, task records and the state file keep the ids they
 were written with.
+
+Also on this branch: four HTTP tests read a startup line that a worker writes just after the line
+readiness waits for, and failed about once in three runs under parallel suites (the same race fixed
+in `6.0.1` for the two-worker test). They now wait for the line. Six consecutive green runs.
