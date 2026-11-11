@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { toolId } from "../src/instructions/from-content.js";
 import { createServer as createNetServer } from "node:net";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
@@ -80,7 +81,7 @@ test("node src/index.js still speaks stdio and writes nothing to stdout", async 
 
     const { tools } = await client.listTools();
     assert.equal(tools.length, EXPECTED_TOOLS, "stdio serves the whole surface");
-    assert.ok(textOf(await client.callTool({ name: "plan_creator", arguments: {} })).length > 0);
+    assert.ok(textOf(await client.callTool({ name: toolId("plan_creator"), arguments: {} })).length > 0);
 
     assert.equal(stdout, "", `stdout must stay empty, got: ${stdout}`);
 
@@ -228,7 +229,7 @@ test("concurrent tool calls stay isolated when they cross a process boundary", a
 
       try {
         const results = await Promise.all(
-          clients.map((client, i) => client.callTool({ name: tools[i], arguments: {} }))
+          clients.map((client, i) => client.callTool({ name: toolId(tools[i]), arguments: {} }))
         );
 
         for (const [i, result] of results.entries()) {

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { toolId } from "../src/instructions/from-content.js";
 import { SERVER_NAME } from "../src/version.js";
 import {
   EXPECTED_TOOLS,
@@ -51,7 +52,7 @@ test("a server process writes nothing to stdout", async () => {
 
     try {
       await client.listTools();
-      textOf(await client.callTool({ name: "branching_strategy", arguments: {} }));
+      textOf(await client.callTool({ name: toolId("branching_strategy"), arguments: {} }));
     } finally {
       await client.close();
       openClients.delete(client);
@@ -113,12 +114,12 @@ test("no tool advertises an argument over HTTP either", async () => {
       // transport rather than the one it replaced: an argument is silently ignored rather
       // than rejected, so what matters is that it cannot change the answer.
       const withArgument = await client.callTool({
-        name: "branching_strategy",
+        name: toolId("branching_strategy"),
         arguments: { path: "../../etc/passwd" },
       });
       assert.equal(
         textOf(withArgument),
-        textOf(await client.callTool({ name: "branching_strategy", arguments: {} })),
+        textOf(await client.callTool({ name: toolId("branching_strategy"), arguments: {} })),
         "an argument must not change which file is served"
       );
     } finally {
@@ -136,10 +137,10 @@ test("a tool call over HTTP returns the file byte-identically", async () => {
 
     try {
       const overHttp = textOf(
-        await client.callTool({ name: "branching_strategy", arguments: {} })
+        await client.callTool({ name: toolId("branching_strategy"), arguments: {} })
       );
       const overMemory = textOf(
-        await memory.client.callTool({ name: "branching_strategy", arguments: {} })
+        await memory.client.callTool({ name: toolId("branching_strategy"), arguments: {} })
       );
 
       assert.equal(
@@ -218,7 +219,7 @@ test("concurrent requests do not share state", async () => {
 
     try {
       const results = await Promise.all(
-        clients.map((client, i) => client.callTool({ name: tools[i], arguments: {} }))
+        clients.map((client, i) => client.callTool({ name: toolId(tools[i]), arguments: {} }))
       );
 
       for (const [i, result] of results.entries()) {
@@ -233,7 +234,7 @@ test("concurrent requests do not share state", async () => {
 
       // The first client still works after the other two have been talking.
       assert.ok(
-        textOf(await clients[0].callTool({ name: "commit_conventions", arguments: {} }))
+        textOf(await clients[0].callTool({ name: toolId("commit_conventions"), arguments: {} }))
           .includes("name: commit-conventions")
       );
     } finally {
