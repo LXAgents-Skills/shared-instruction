@@ -86,4 +86,4 @@ worked out — but it is not a model to repeat, which is why the copy was worth 
 from the start, and why a server arriving here is a page rather than a dependency.
 
 Two clones used to sit at the root: `anthropics/skills/` and
-`LXAgents-MCP/shared-instruction/`. Both are gone or unused, and neither should come back.
+`LXAgents-Skills/shared-instruction/`. Both are gone or unused, and neither should come back.

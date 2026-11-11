@@ -1,6 +1,6 @@
 ---
 name: memory-state-repository-state
-description: Current known state of LXAgents-MCP/shared-instruction — what exists, what is deployed, and what is not built yet.
+description: Current known state of LXAgents-Skills/shared-instruction — what exists, what is deployed, and what is not built yet.
 ---
 
 # Repository State
@@ -45,7 +45,7 @@ session start".*
 
 **What this is.** A read-only MCP server that serves the LXAgents shared agent instruction
 set. Plain JavaScript, Node ESM, no build step. Published as
-`@lxagents-mcp/shared-instruction`; the server name is `lxagents-shared-instruction`, renamed
+`@lxagents-skills/shared-instruction`; the server name is `lxagents-shared-instruction`, renamed
 from `lxagents-agents-base` in `2.0.0`. Every consuming repository named the old one in
 its client configuration, so each has to update it.
 

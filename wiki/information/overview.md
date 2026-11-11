@@ -1,7 +1,7 @@
 # Overview
 
-`LXAgents-MCP/shared-instruction` is an MCP server that delivers the organization's
-shared agent instruction set. It is published as `@lxagents-mcp/shared-instruction`, and the MCP
+`LXAgents-Skills/shared-instruction` is an MCP server that delivers the organization's
+shared agent instruction set. It is published as `@lxagents-skills/shared-instruction`, and the MCP
 connector it serves is named `lxagents-shared-instruction` — the package name and the connector
 id are deliberately different, because renaming the id would break every consuming
 repository's client configuration.

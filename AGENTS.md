@@ -1,11 +1,11 @@
 ---
 name: agents-entry-point
-description: Entry point for LXAgents-MCP/shared-instruction — the repository that holds and serves the shared agent instruction set.
+description: Entry point for LXAgents-Skills/shared-instruction — the repository that holds and serves the shared agent instruction set.
 ---
 
 # AGENTS.md
 
-This repository is `LXAgents-MCP/shared-instruction`. It holds the shared agent
+This repository is `LXAgents-Skills/shared-instruction`. It holds the shared agent
 instruction set in [`content/`](content/) and serves it over MCP as
 `lxagents-shared-instruction`. Every other
 repository in the organization consumes that set through a connector rather than
@@ -105,7 +105,7 @@ branch. Everywhere else, read the connector's tools.
 | Transport | How |
 |---|---|
 | Local stdio (default) | `command: node`, `args: ["src/index.js"]`, `cwd:` this checkout |
-| Published | `command: npx`, `args: ["-y", "@lxagents-mcp/shared-instruction"]` |
+| Published | `command: npx`, `args: ["-y", "@lxagents-skills/shared-instruction"]` |
 | HTTP | `type: http`, `url: https://<host>/mcp` — `npm run start:http` binds `PORT \|\| 3000` |
 
 Both transports serve the same tool surface — one tool per file in `content/`, and

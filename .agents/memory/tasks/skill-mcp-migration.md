@@ -47,3 +47,10 @@ Branches stack: task 1 from `master`, task `k` from task `k-1`.
 ### Task 1 — plan/skill-mcp-migration
 
 Landed: this record and its row in `memory-index.md`.
+
+### Task 2 — chore/org-scope
+
+Landed: `LXAgents-MCP` → `LXAgents-Skills` and `@lxagents-mcp/` → `@lxagents-skills/` in 15
+current files, including `package.json`, `package-lock.json`, `README.md`, `AGENTS.md` and two
+`content/` files. The git remote already pointed at `LXAgents-Skills`. The Render hostname
+`lxagents-mcp-shared-instruction.onrender.com` is a deployed address, not a name, and is kept.

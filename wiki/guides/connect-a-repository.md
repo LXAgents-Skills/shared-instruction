@@ -11,7 +11,7 @@ The server speaks **stdio by default**, so this is a local command:
   "mcpServers": {
     "lxagents-shared-instruction": {
       "command": "npx",
-      "args": ["-y", "@lxagents-mcp/shared-instruction"]
+      "args": ["-y", "@lxagents-skills/shared-instruction"]
     }
   }
 }

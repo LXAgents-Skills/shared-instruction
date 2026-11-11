@@ -1,6 +1,6 @@
 ---
 name: repository-rules
-description: Rules specific to LXAgents-MCP/shared-instruction — the dual producer/consumer role, the code conventions, and what must not be introduced.
+description: Rules specific to LXAgents-Skills/shared-instruction — the dual producer/consumer role, the code conventions, and what must not be introduced.
 ---
 
 # Repository Rules
@@ -131,7 +131,7 @@ transports agree tool for tool.
 
 ## Deployment
 
-Published to npm as `@lxagents-mcp/shared-instruction`, and consumed mostly as a stdio
+Published to npm as `@lxagents-skills/shared-instruction`, and consumed mostly as a stdio
 subprocess. The package exposes one bin, `lxagents-shared-instruction`, which is the
 server.
 
