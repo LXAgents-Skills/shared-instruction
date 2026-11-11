@@ -136,8 +136,9 @@ documented all of the following as if it were shipped. None of it is.
 matched in constant time against `MCP_AUTH_TOKEN`; a missing or wrong token is a `401` with
 `WWW-Authenticate: Bearer` and error code `-32001` in the JSON-RPC envelope, and it is given
 before the body is read and before any route is revealed, so an unauthenticated caller cannot
-tell a `404` from a `405` from a route that exists. The process refuses to start without a
-token of at least 32 characters. It is **stateless**: every request carries everything it needs, no session
+tell a `404` from a `405` from a route that exists. Off loopback the process refuses to start without a
+token of at least 32 characters; on loopback with no token it serves without one, behind a
+`localhost` `Host` allow-list. It is **stateless**: every request carries everything it needs, no session
 id is minted, and there is no session store to bound. Any other method on `/mcp` is a 405
 that says so, and any other path is a JSON-RPC 404.
 

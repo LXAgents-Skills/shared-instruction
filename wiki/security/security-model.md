@@ -44,9 +44,9 @@ distribution path is a review either.
 
 | Surface | Exposure | What guards it |
 |---|---|---|
-| Instruction calls | Whoever can spawn the process (stdio), or whoever holds the token (HTTP) | **Nothing beyond that, and that is the design.** Every tool is read-only and takes no argument. There is no path, no verb, and no target a caller can supply. |
+| Instruction calls | Whoever can spawn the process (stdio), whoever is on this machine (HTTP on loopback with no token), or whoever holds the token (HTTP otherwise) | **Nothing beyond that, and that is the design.** Every tool is read-only and takes no argument. There is no path, no verb, and no target a caller can supply. |
 | Path reads | None | No tool takes a path and nothing opens a file a caller named. The set is read once at boot from a fixed directory. Detailed below. |
-| **The HTTP listener** | **Anyone who can reach the port** | **A bearer token**, `MCP_AUTH_TOKEN`: every route except `GET /healthz` refuses without it, and the process will not start without one. Optional `Host` allow-list via `MCP_ALLOWED_HOSTS`, **off unless set**. No TLS and no rate limiting — those belong to whatever fronts the port. Detailed below. |
+| **The HTTP listener** | **Anyone who can reach the port** | **A bearer token**, `MCP_AUTH_TOKEN`: every route except `GET /healthz` refuses without it, and off loopback the process will not start without one. On loopback with no token, the bind keeps other machines out and a `Host` allow-list of `localhost`, `127.0.0.1` and `[::1]` keeps out DNS rebinding. Otherwise an optional `Host` allow-list via `MCP_ALLOWED_HOSTS`, **off unless set**. No TLS and no rate limiting — those belong to whatever fronts the port. Detailed below. |
 | In-flight requests | Anyone who holds the token | One `McpServer` per request, never shared, closed when its response closes. **The set of them is per-request closers, not a map of live sessions** — a stateless transport has no id to key on and keeps nothing between requests, so there is no store to fill. |
 | Process startup | Anyone who can spawn it | Reads `package.json` and walks `content/`. Malformed content throws and the process exits rather than serving something wrong. |
 | Dependency install | Build time | `npm install` runs lifecycle scripts. `npm ci --ignore-scripts` is the safer form for a build you do not control. |
@@ -77,9 +77,18 @@ there is no way to reach a worker that skipped it.
 
 **Authentication, and what it is for.** The transport decides. A stdio server is a pipe the
 client spawns on its own machine, so the only caller is whoever already runs the process and
-there is nobody to authenticate. An HTTP server is a socket anyone who can reach the port can
-open, so every request must carry `Authorization: Bearer <token>` matching `MCP_AUTH_TOKEN`,
-and the process refuses to start without one.
+there is nobody to authenticate. An HTTP server bound to any interface but loopback is a socket
+anyone who can reach the port can open, so every request must carry
+`Authorization: Bearer <token>` matching `MCP_AUTH_TOKEN`, and the process refuses to start
+without one.
+
+**HTTP on loopback is a local install, and may run without a token** (since `6.0.3`, at the
+owner's request; `5.0.0` refused this waiver). Only this machine can open a loopback socket, so
+the residual callers are other processes and users on the same machine, and web pages in its
+browser. The second are stopped by the `Host` allow-list a token-less local server always has.
+**A reverse proxy, tunnel or port-forward in front of a token-less loopback server turns it into
+an open server** — set `MCP_AUTH_TOKEN` before exposing it in any way. A token set on loopback is
+enforced exactly as off it.
 
 **What the token gates is the service, not the text.** The content is an instruction set
 meant to be read by every repository in the organization, and it is also on npm; a token does
@@ -183,7 +192,8 @@ If a future change adds any read keyed on caller input, that is the change to lo
 
 ## Authentication: HTTP only
 
-stdio has none and needs none; HTTP requires a bearer token. The reasoning, the construction and
+stdio has none and needs none; HTTP on loopback needs none unless one is set; HTTP on any
+other interface requires a bearer token. The reasoning, the construction and
 the limits are in **The HTTP listener** above.
 
 The token does not change what the content is. **Nothing confidential goes in `content/`, in
@@ -201,9 +211,9 @@ six environment variables, and the other five are not credentials:
 | Variable | Default | What it is |
 |---|---|---|
 | `PORT` | `3000` | The port to bind. A number. |
-| `HOST` | `0.0.0.0` | The interface to bind. An address. |
+| `HOST` | `0.0.0.0` | The interface to bind. An address. A loopback address makes the token optional. |
 | `MCP_ALLOWED_HOSTS` | unset | Hostnames permitted in the `Host` header. **Off when unset.** |
-| `MCP_AUTH_TOKEN` | **none** | **A secret.** The bearer token every HTTP request except `GET /healthz` must carry. At least 32 characters; HTTP will not start without it; stdio never reads it. |
+| `MCP_AUTH_TOKEN` | **none** | **A secret.** The bearer token every HTTP request except `GET /healthz` must carry. At least 32 characters; HTTP off loopback will not start without it; stdio never reads it. |
 | `MCP_TRANSPORT` | `stdio` | Which transport `src/index.js` speaks. A word. |
 | `MCP_CLUSTER_WORKERS` | CPU count | How many HTTP worker processes to fork. A number. |
 
@@ -230,7 +240,7 @@ same command, named for what it is.
 
 **HTTP** — `npm run start:http` binds a port and serves the same tools, stateless, at
 `POST /mcp`, with a `GET /healthz` beside it. Exposure is bounded by who can reach that
-port **and** holds `MCP_AUTH_TOKEN`; the process will not start without one. It is designed to be deployed as a Web Service, and it is not deployed anywhere by
+port **and** holds `MCP_AUTH_TOKEN`; off loopback the process will not start without one. It is designed to be deployed as a Web Service, and it is not deployed anywhere by
 this repository: there is no host, no hostname, and no registry image, and the
 documentation says "can be deployed" rather than "is deployed" for that reason.
 

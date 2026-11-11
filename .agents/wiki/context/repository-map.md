@@ -47,8 +47,9 @@ There are **two**, and they differ only in transport:
 * `src/http.js` — `npm run start:http`, and the command the `Dockerfile` documents. A
   `node:cluster` primary forks `os.availableParallelism()` workers (`MCP_CLUSTER_WORKERS`
   overrides, `1` disables), each binding the same `HOST`/`PORT` and serving `POST /mcp` and
-  `GET /healthz` from the app in `src/app.js`. **It refuses to start without
-  `MCP_AUTH_TOKEN`** — checked in the primary, before any fork. **The primary binds nothing
+  `GET /healthz` from the app in `src/app.js`. **Off loopback it refuses to start without
+  `MCP_AUTH_TOKEN`** — checked in the primary, before any fork; on a loopback `HOST` with no
+  token it serves open behind a `localhost` `Host` allow-list. **The primary binds nothing
   and logs no startup line**, so the log carries one `serving over http` line per worker. It logs to
   **stderr**, because it is one dynamic import away from a process whose stdout is the
   JSON-RPC channel.
@@ -74,9 +75,10 @@ Behind both:
 
 ```bash
 npm install
-npm test                 # node:test — two files
+npm test                 # node:test — test/*.test.js
 npm start                # stdio
 MCP_AUTH_TOKEN=<32+ chars> npm run start:http   # HTTP on 0.0.0.0:3000, or $PORT/$HOST; one worker per CPU; no token, no start
+HOST=127.0.0.1 npm run start:http                # HTTP on loopback; no token needed
 npm run inspect          # MCP Inspector against the stdio server
 ```
 

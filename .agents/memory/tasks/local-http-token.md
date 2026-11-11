@@ -54,3 +54,11 @@ A token-less local server gets the `Host` allow-list `LOOPBACK_HOSTNAMES` (`loca
 with a `--host` flag; that is not done here, because the Render service tracks `master` and its
 start command is not recorded in this repository, so a default bind change could take it off
 `0.0.0.0` unseen. Refusal tests now bind `0.0.0.0`; four tests added. 74/74 on three runs.
+
+### Task 3 — docs/local-http-token
+
+Landed: README, `env.md`, `setup.md`, `install-as-local-mcp.md`, `connect-a-repository.md`,
+`mcp-surface.md`, `architecture.md`, `security-model.md` and the repository map say a local
+install (stdio, or HTTP on loopback) needs no token and a server does, show the
+`HOST=127.0.0.1 npm run start:http` form, and warn against a proxy in front of a token-less
+loopback server.

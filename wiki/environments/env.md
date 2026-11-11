@@ -7,19 +7,22 @@ which is why that path has nothing to configure — and why it needs no token.
 | Variable | Default | What it does |
 |---|---|---|
 | `PORT` | `3000` | The port the HTTP transport binds. |
-| `HOST` | `0.0.0.0` | The interface it binds. Loopback-only hosts need no allow-list. |
+| `HOST` | `0.0.0.0` | The interface it binds. **A loopback host (`127.0.0.1`, `localhost`, `::1`) is a local install**: no token needed, and the `Host` header is limited to `localhost`, `127.0.0.1` and `[::1]` unless `MCP_ALLOWED_HOSTS` says otherwise. |
 | `MCP_ALLOWED_HOSTS` | unset | Comma-separated hostnames permitted in the `Host` header. **Off when unset.** |
-| `MCP_AUTH_TOKEN` | **none — required for HTTP** | The bearer token every HTTP request except `GET /healthz` must carry. At least 32 characters. **HTTP will not start without it.** stdio never reads it. |
+| `MCP_AUTH_TOKEN` | **none — required for HTTP off loopback** | The bearer token every HTTP request except `GET /healthz` must carry. At least 32 characters. **HTTP on any non-loopback `HOST`, the default included, will not start without it.** On loopback it is optional, and enforced when set. stdio never reads it. |
 | `MCP_TRANSPORT` | `stdio` | Which transport `src/index.js` speaks: `stdio`, or `http` (`streamable-http` is accepted too). `http` reaches `src/http.js`, which serves `POST /mcp`. |
 | `MCP_CLUSTER_WORKERS` | CPU count | How many HTTP worker processes to fork. **`1` forks nothing.** |
 
 `src/index.js` reads `MCP_TRANSPORT` and nothing else. The HTTP path — `src/http.js`, and the
 app and `src/auth.js` it builds — reads the other five.
 
-**Why `MCP_AUTH_TOKEN` is required rather than optional.** The transport decides: a server a
-client spawns is a pipe on the client's own machine, so there is nobody to authenticate; a
-server on a port is reachable by anyone who can open a socket, so every request must prove the
-caller holds the token. An optional token would mean a deployment that forgot to set it ran
+**When `MCP_AUTH_TOKEN` is required.** Where the server can be reached decides: a server a
+client spawns is a pipe on the client's own machine, and HTTP bound to loopback is a socket
+only this machine can open, so neither has anyone to authenticate; a server on any other
+interface is reachable by anyone who can open a socket, so every request must prove the caller
+holds the token. **Never put a reverse proxy in front of a token-less loopback server** — the
+proxy would make it reachable, and nothing would stop the caller. Off loopback the token is
+required rather than optional. An optional token would mean a deployment that forgot to set it ran
 open and said nothing, so instead the process refuses to start — one line on stderr naming the
 variable, and exit code `1` — and `createApp` refuses to build without it, so the check cannot
 be skipped by calling the app directly.
