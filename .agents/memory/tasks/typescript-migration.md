@@ -46,3 +46,10 @@ committed" half is kept.
 ### Task 1 — plan/typescript-migration
 
 Landed: this record and its row in `memory-index.md`.
+
+### Task 2 — chore/dependencies
+
+Landed: `@modelcontextprotocol/sdk` `^1.32.2`, `express` `^5.3.0`, `zod` `^4.6.7`, each the
+latest on the registry, and `npm audit fix` for the transitive tree. `npm audit` went from 8
+vulnerabilities (3 high, 5 moderate: among them `zod` below 4.6.6, `hono`, `ip-address`, `qs`)
+to 0. `npm outdated` is empty. 74/74 tests unchanged.
