@@ -5,7 +5,7 @@ description: Letting HTTP on a loopback address start without MCP_AUTH_TOKEN, wh
 
 # Token Only for Server Installs
 
-## 2026-11-11 — in progress
+## 2026-11-11 — done
 
 **Goal.** A local install never asks for `MCP_AUTH_TOKEN`; a server install always does.
 
@@ -23,10 +23,10 @@ host would turn it into an open door. That risk is stated in the security model 
 
 | # | Title | Branch | PR |
 |---|---|---|---|
-| 1 | Task record | `plan/local-http-token` | — |
-| 2 | Loopback without a token | `feat/loopback-without-token` | — |
-| 3 | Documentation | `docs/local-http-token` | — |
-| 4 | Release | `release/6.0.3` | — |
+| 1 | Task record | `plan/local-http-token` | [#14](https://github.com/LXAgents-Skills/shared-instruction/pull/14) |
+| 2 | Loopback without a token | `feat/loopback-without-token` | [#15](https://github.com/LXAgents-Skills/shared-instruction/pull/15) |
+| 3 | Documentation | `docs/local-http-token` | [#16](https://github.com/LXAgents-Skills/shared-instruction/pull/16) |
+| 4 | Release | `release/6.0.3` | [#17](https://github.com/LXAgents-Skills/shared-instruction/pull/17) |
 
 ## Decisions
 
@@ -62,3 +62,8 @@ Landed: README, `env.md`, `setup.md`, `install-as-local-mcp.md`, `connect-a-repo
 install (stdio, or HTTP on loopback) needs no token and a server does, show the
 `HOST=127.0.0.1 npm run start:http` form, and warn against a proxy in front of a token-less
 loopback server.
+
+### Task 4 — release/6.0.3
+
+Landed: version `6.0.3`, the image tag, `wiki/logs/6/0/3/CHANGELOG.md`, its row in `logs-index.md`,
+and the version line in `repository-state.md`. No tag was created. Pull requests #14 to #17 were merged in order by rebase, each branch rebased onto `master` first.

@@ -30,7 +30,7 @@ states it in a sentence.
 no `version`, no `author`. The release task's branch is `release/{version}` with no `v`; the
 git tag carries the `v`.
 
-**Version.** `6.0.2` — a patch by the owner's choice, although it renames every tool to `lxagents_skills_shared_instruction_{base}`. `6.0.1` before it split the HTTP suite and added one JSON-RPC error helper. `6.0.0` before it was a major, because the npm package moved to `@lxagents-skills/shared-instruction`
+**Version.** `6.0.3` — a patch: HTTP on a loopback `HOST` starts without `MCP_AUTH_TOKEN`, behind a `localhost` `Host` allow-list; any other bind still requires it. `6.0.2` before it renamed every tool to `lxagents_skills_shared_instruction_{base}`. `6.0.1` before it split the HTTP suite and added one JSON-RPC error helper. `6.0.0` before it was a major, because the npm package moved to `@lxagents-skills/shared-instruction`
 and `src/tools/` became `src/instructions/`. The log is `wiki/logs/6/0/0/CHANGELOG.md`. `5.0.0`
 before it was a major because the HTTP transport requires a bearer token. No git tag has been created.
 
