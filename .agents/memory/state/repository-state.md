@@ -30,7 +30,7 @@ states it in a sentence.
 no `version`, no `author`. The release task's branch is `release/{version}` with no `v`; the
 git tag carries the `v`.
 
-**Version.** `6.0.0` — a major, because the npm package moved to `@lxagents-skills/shared-instruction`
+**Version.** `6.0.1` — a patch: the HTTP test suite split by subject and one JSON-RPC error helper, with no change to the surface. `6.0.0` before it was a major, because the npm package moved to `@lxagents-skills/shared-instruction`
 and `src/tools/` became `src/instructions/`. The log is `wiki/logs/6/0/0/CHANGELOG.md`. `5.0.0`
 before it was a major because the HTTP transport requires a bearer token. No git tag has been created.
 

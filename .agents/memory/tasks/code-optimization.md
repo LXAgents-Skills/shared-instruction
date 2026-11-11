@@ -5,7 +5,7 @@ description: The 6.0.1 cleanup — the HTTP test suite split by subject and one 
 
 # Code Optimization
 
-## 2026-11-11 — in progress
+## 2026-11-11 — done
 
 **Goal.** Every file in `src/` and `test/` has one subject, and no shape is built in two places.
 
@@ -22,10 +22,10 @@ the version to a patch.
 
 | # | Title | Branch | PR |
 |---|---|---|---|
-| 1 | Task record | `plan/code-optimization` | — |
-| 2 | Split the HTTP suite | `test/http-suite-split` | — |
-| 3 | One JSON-RPC error helper | `refactor/rpc-error` | — |
-| 4 | Release | `release/6.0.1` | — |
+| 1 | Task record | `plan/code-optimization` | [#6](https://github.com/LXAgents-Skills/shared-instruction/pull/6) |
+| 2 | Split the HTTP suite | `test/http-suite-split` | [#7](https://github.com/LXAgents-Skills/shared-instruction/pull/7) |
+| 3 | One JSON-RPC error helper | `refactor/rpc-error` | [#8](https://github.com/LXAgents-Skills/shared-instruction/pull/8) |
+| 4 | Release | `release/6.0.1` | [#9](https://github.com/LXAgents-Skills/shared-instruction/pull/9) |
 
 Branches stack: task 1 from `master`, task `k` from task `k-1`.
 
@@ -52,3 +52,8 @@ Landed: `src/rpc-error.js` exports `rpcError`. `src/app.js` imports it instead o
 and `src/auth.js` uses it for the `401` instead of building the envelope a second time. Every
 response body, status and header is unchanged, and the tests that pin them pass without edits.
 70/70.
+
+### Task 4 — release/6.0.1
+
+Landed: `package.json` and `package-lock.json` at `6.0.1`, the image tag, `wiki/logs/6/0/1/CHANGELOG.md`,
+its row in `logs-index.md`, and the version line in `repository-state.md`. No tag was created. Pull requests #6 to #9 were merged in order by rebase, each branch rebased onto `master` first.
