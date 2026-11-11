@@ -63,3 +63,12 @@ Landed: `src/tools/` is `src/instructions/` (a `git mv`, so history follows). `T
 files, and every page that names them. `server.registerTool`, `listTools()`, the `tools/list` and
 `tools/call` methods, and `TOOL_NAME` (it validates the MCP wire name) are unchanged. 70/70 tests
 pass.
+
+### Task 4 — docs/skill-mcp-terminology
+
+Landed: "MCP" → "Skill MCP" where it names this server — `README.md`, `AGENTS.md`, the wiki
+pages, the `instructions` string clients receive at `initialize`, and the HTTP startup line
+(`serving Skill MCP over http on …`, with the tests that match it). "shared tool" → "shared
+instruction" and "tool call" → "instruction call" in `AGENTS.md`, `README.md` and the wiki.
+`content/` held none of the listed phrases outside generic MCP-server guidance, which keeps "MCP"
+(D3), so `content/` changed only in task 2. 70/70 tests pass.

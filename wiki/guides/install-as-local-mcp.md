@@ -1,4 +1,4 @@
-# Install as a Local MCP Server
+# Install as a Local Skill MCP Server
 
 How to run the shared instruction set from a clone on your own disk.
 
@@ -133,7 +133,7 @@ not already resolving.
 ## Shared Instruction Set — Local Install
 
 The conventions this repository follows live in the shared instruction set served by the
-**`lxagents-shared-instruction`** MCP server. Resolve it before doing any work.
+**`lxagents-shared-instruction`** Skill MCP server. Resolve it before doing any work.
 
 If the connector is already available in this session, use it and ignore the rest of this
 block. If it is not, install it locally:
@@ -142,7 +142,7 @@ block. If it is not, install it locally:
     git clone https://github.com/LXAgents-Skills/shared-instruction ./mcps/LXAgents-Skills/shared-instruction
     cd ./mcps/LXAgents-Skills/shared-instruction && npm install
 
-Then register it as a stdio MCP server named `lxagents-shared-instruction`, with
+Then register it as a stdio Skill MCP server named `lxagents-shared-instruction`, with
 `command: node`, `args: ["src/index.js"]`, and
 `cwd: ./mcps/LXAgents-Skills/shared-instruction`. A host serving it over HTTP registers
 `type: http`, `url: https://<host>/mcp` and an `Authorization: Bearer <token>` header
@@ -185,4 +185,4 @@ connector per [Connect a repository](connect-a-repository.md).
 
 - [Connect a repository](connect-a-repository.md) — the normal, published path.
 - [Local setup](../environments/setup.md) — running the server in detail.
-- [MCP surface](../reference/mcp-surface.md) — the tool surface.
+- [Skill MCP surface](../reference/mcp-surface.md) — the tool surface.

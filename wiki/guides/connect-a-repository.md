@@ -19,7 +19,7 @@ The server speaks **stdio by default**, so this is a local command:
 
 To run it from a checkout instead, point `command: node` at `src/index.js` with `cwd` set
 to the clone — the full procedure, including where to put the clone, is in
-[Install as a local MCP server](install-as-local-mcp.md).
+[Install as a local Skill MCP server](install-as-local-mcp.md).
 
 **There is also a remote form**, for a server running at a fixed address rather than
 spawned per client. Start it with `npm run start:http` — it binds `0.0.0.0:3000` unless
@@ -121,7 +121,7 @@ paste the shared set in as a workaround.
 
 ## Related pages
 
-- [Install as a local MCP server](install-as-local-mcp.md) — running it from a clone
+- [Install as a local Skill MCP server](install-as-local-mcp.md) — running it from a clone
   under `./mcps/`.
 - [Overview](../information/overview.md)
-- [MCP surface](../reference/mcp-surface.md)
+- [Skill MCP surface](../reference/mcp-surface.md)

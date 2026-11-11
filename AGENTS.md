@@ -6,7 +6,7 @@ description: Entry point for LXAgents-Skills/shared-instruction — the reposito
 # AGENTS.md
 
 This repository is `LXAgents-Skills/shared-instruction`. It holds the shared agent
-instruction set in [`content/`](content/) and serves it over MCP as
+instruction set in [`content/`](content/) and serves it over Skill MCP as
 `lxagents-shared-instruction`. Every other
 repository in the organization consumes that set through a connector rather than
 copying it.
@@ -41,7 +41,7 @@ work:
 1. Read `AGENTS.md` (this file), including the Shared instruction tools block below.
 2. Read the shared `automation` tool — here that is
    [`content/automation.md`](content/automation.md) in the working tree. It lists every
-   shared tool and the condition that activates it, and it is where you find out whether
+   shared instruction and the condition that activates it, and it is where you find out whether
    the connector is reachable, which you have to say either way (see
    [Using the connector](#using-the-connector)). The step is not skippable.
 3. Read [`.agents/index/root-index.md`](.agents/index/root-index.md).
@@ -49,7 +49,7 @@ work:
    the rows matching the request, so you continue prior work instead of restarting it.
 
 That is the whole sequence, and every step reads a file on disk. **Beyond `automation`, call
-no shared tool at session start** — each fires on the condition `automation` gives it, and
+no shared instruction at session start** — each fires on the condition `automation` gives it, and
 calling them up front pays for procedures the request may never need.
 
 **These gates stand from the first message, before any tool is called:** approve the plan
@@ -127,7 +127,7 @@ That is the common case, and it looks like a broken server rather than a stale s
    bulk-call the set.
 3. Call the one tool whose condition is true. None takes an argument.
 
-**`automation` is the only tool called at session start.** Every other tool returns one file
+**`automation` is the only instruction called at session start.** Every other tool returns one file
 when its condition fires. Calling every tool up front rebuilds the one oversized payload this
 surface replaced, one call at a time — and there are dozens of them.
 

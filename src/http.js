@@ -97,7 +97,7 @@ function startWorker() {
 
   const server = createApp({ inFlight }).listen(PORT, HOST, () => {
     const where = HOST === "0.0.0.0" ? "all interfaces" : HOST;
-    log(`${SERVER_NAME} ${VERSION} serving over http on :${PORT}/mcp (${where})`);
+    log(`${SERVER_NAME} ${VERSION} serving Skill MCP over http on :${PORT}/mcp (${where})`);
 
     // The token is required for the process to be here at all, so this line is a statement
     // of fact and not a warning. It never carries the value.

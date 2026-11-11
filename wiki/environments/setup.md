@@ -1,11 +1,11 @@
 # Local Setup
 
-An MCP server over stdio, with an HTTP transport available for running it as a service.
+A Skill MCP server over stdio, with an HTTP transport available for running it as a service.
 There is no CLI. There is a container image — see [Docker](docker.md).
 
 | Mode | What it is | Who uses it |
 |---|---|---|
-| **Server mode** | An MCP server over stdio, or over stateless HTTP | An MCP client — an editor, an agent, a connector |
+| **Server mode** | A Skill MCP server over stdio, or over stateless HTTP | An MCP client — an editor, an agent, a connector |
 
 ## Requirements
 
@@ -132,6 +132,6 @@ than a runtime surprise. The fix is usually one line in `NAME_OVERRIDES` in
 
 ## Related pages
 
-- [MCP surface](../reference/mcp-surface.md) — the tool surface, and what is not exposed.
+- [Skill MCP surface](../reference/mcp-surface.md) — the tool surface, and what is not exposed.
 - [Environment variables](env.md) — the five the HTTP transport reads.
 - [Architecture](../information/architecture.md) — how the surface is generated.

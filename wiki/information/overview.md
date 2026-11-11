@@ -1,7 +1,7 @@
 # Overview
 
-`LXAgents-Skills/shared-instruction` is an MCP server that delivers the organization's
-shared agent instruction set. It is published as `@lxagents-skills/shared-instruction`, and the MCP
+`LXAgents-Skills/shared-instruction` is a Skill MCP server that delivers the organization's
+shared agent instruction set. It is published as `@lxagents-skills/shared-instruction`, and the Skill MCP
 connector it serves is named `lxagents-shared-instruction` — the package name and the connector
 id are deliberately different, because renaming the id would break every consuming
 repository's client configuration.
@@ -64,6 +64,6 @@ of the current design, and the reason this page does not describe a single bulk 
 
 - [Architecture](architecture.md) — how the tool surface is generated, and why that makes
   concurrency and read cost a non-issue.
-- [MCP surface](../reference/mcp-surface.md) — the generated tools, and the longer list of
+- [Skill MCP surface](../reference/mcp-surface.md) — the generated tools, and the longer list of
   what this server does not expose.
 - [Connect a repository](../guides/connect-a-repository.md) — adoption, step by step.
