@@ -5,7 +5,7 @@ description: Prefixing every tool id with lxagents_skills_shared_instruction_ so
 
 # Prefixed Tool IDs
 
-## 2026-11-11 — in progress
+## 2026-11-11 — done
 
 **Goal.** A client that connects several LXAgents servers never sees two tools with the same id.
 
@@ -22,10 +22,10 @@ condition is invented. The longest id is 60 characters, under the 64 many client
 
 | # | Title | Branch | PR |
 |---|---|---|---|
-| 1 | Task record | `plan/prefixed-tool-ids` | — |
-| 2 | Prefixed ids and the hub | `feat/prefixed-tool-ids` | — |
-| 3 | Documentation | `docs/prefixed-tool-ids` | — |
-| 4 | Release | `release/6.0.2` | — |
+| 1 | Task record | `plan/prefixed-tool-ids` | [#10](https://github.com/LXAgents-Skills/shared-instruction/pull/10) |
+| 2 | Prefixed ids and the hub | `feat/prefixed-tool-ids` | [#11](https://github.com/LXAgents-Skills/shared-instruction/pull/11) |
+| 3 | Documentation | `docs/prefixed-tool-ids` | [#12](https://github.com/LXAgents-Skills/shared-instruction/pull/12) |
+| 4 | Release | `release/6.0.2` | [#13](https://github.com/LXAgents-Skills/shared-instruction/pull/13) |
 
 ## Decisions
 
@@ -62,3 +62,8 @@ were written with.
 Also on this branch: four HTTP tests read a startup line that a worker writes just after the line
 readiness waits for, and failed about once in three runs under parallel suites (the same race fixed
 in `6.0.1` for the two-worker test). They now wait for the line. Six consecutive green runs.
+
+### Task 4 — release/6.0.2
+
+Landed: version `6.0.2`, the image tag, `wiki/logs/6/0/2/CHANGELOG.md`, its row in `logs-index.md`,
+and the version line in `repository-state.md`. No tag was created. Pull requests #10 to #13 were merged in order by rebase, each branch rebased onto `master` first.
