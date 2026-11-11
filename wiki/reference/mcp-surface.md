@@ -18,7 +18,7 @@ transports, and they expose the same tools. See
 Every entry point calls the same `createServer()`, so the surface is identical by
 construction. A test asserts the two agree, tool for tool and byte for byte on a call.
 
-`initialize` also returns `instructions`, which tells a session to read `automation` once at
+`initialize` also returns `instructions`, which tells a session to read `lxagents_skills_shared_instruction_automation` once at
 the start of every session, to call no other tool until its condition is true, and that each
 tool is complete on its own.
 
@@ -31,11 +31,13 @@ count, enumerate the connector's tools.
 
 A tool is named after its own filename:
 
-- the folder is dropped — `git/branching-strategy.md` is `branching_strategy`
+- the folder is dropped — `git/branching-strategy.md` is `lxagents_skills_shared_instruction_branching_strategy`
 - `.md` is dropped
 - the name is lowercased and kebab becomes snake
+- the server prefix `lxagents_skills_shared_instruction_` goes in front, so ids from several
+  LXAgents servers in one client never collide — underscores only, never hyphens
 - explicit overrides for the 13 GitHub and GitLab pages, named for their forge
-  (`github_api`, `gitlab_ci`, …): four filenames exist on both forges (`api`,
+  (`lxagents_skills_shared_instruction_github_api`, `lxagents_skills_shared_instruction_gitlab_ci`, …): four filenames exist on both forges (`api`,
   `authentication`, `issues`, `repositories`), and the rest (`actions`, `ci`, `releases`)
   say nothing about which forge without one
 
@@ -80,7 +82,7 @@ supplied, and the module that did is gone.
 
 | Condition | Why it is fatal rather than a warning |
 |---|---|
-| A derived name is not `[a-z][a-z0-9_]{0,63}` | It is not a usable MCP tool name. Add it to `NAME_OVERRIDES`. |
+| A derived name is not `[a-z][a-z0-9_]{0,127}` | It is not a usable MCP tool name. Add it to `NAME_OVERRIDES`. |
 | Two files derive the same name | One would silently shadow the other. |
 | A file has no frontmatter `description` | It would publish as an unroutable tool. |
 | The set is empty | The server would expose nothing. |
@@ -91,7 +93,7 @@ that needed the file.
 
 ## The hub
 
-`automation` is the one tool a session reads unprompted, and the only one that names the
+`lxagents_skills_shared_instruction_automation` is the one tool a session reads unprompted, and the only one that names the
 others. It lists every other tool once, each with the condition that activates it, so a
 session loads what its request needs and nothing else. It is the first tool a client lists,
 its description opens with the same words as its name — "Read this tool every session" —
@@ -149,11 +151,11 @@ down here, because a hand-maintained copy of a generated list is a copy that goe
 
 ## Cost
 
-The set is loaded once, so a session pays for `automation` and the tools whose conditions
+The set is loaded once, so a session pays for `lxagents_skills_shared_instruction_automation` and the tools whose conditions
 actually fire. Calling every tool reproduces the oversized payload this design replaced, one
 call at a time — and there are dozens of them, so that is a real cost rather than a
 hypothetical one. `src/server.js`'s `instructions` string says so at `initialize`, and
-`automation` says it again as a rule.
+`lxagents_skills_shared_instruction_automation` says it again as a rule.
 
 ## Tests
 

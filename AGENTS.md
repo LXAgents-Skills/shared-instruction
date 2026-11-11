@@ -39,7 +39,7 @@ standing orders, not as optional reference material.
 work:
 
 1. Read `AGENTS.md` (this file), including the Shared instruction tools block below.
-2. Read the shared `automation` tool — here that is
+2. Read the shared `lxagents_skills_shared_instruction_automation` tool — here that is
    [`content/automation.md`](content/automation.md) in the working tree. It lists every
    shared instruction and the condition that activates it, and it is where you find out whether
    the connector is reachable, which you have to say either way (see
@@ -48,8 +48,8 @@ work:
 4. Read [`.agents/index/memory-index.md`](.agents/index/memory-index.md) and load only
    the rows matching the request, so you continue prior work instead of restarting it.
 
-That is the whole sequence, and every step reads a file on disk. **Beyond `automation`, call
-no shared instruction at session start** — each fires on the condition `automation` gives it, and
+That is the whole sequence, and every step reads a file on disk. **Beyond `lxagents_skills_shared_instruction_automation`, call
+no shared instruction at session start** — each fires on the condition `lxagents_skills_shared_instruction_automation` gives it, and
 calling them up front pays for procedures the request may never need.
 
 **These gates stand from the first message, before any tool is called:** approve the plan
@@ -74,21 +74,21 @@ goes stale exactly like a consumer's.
 Adopted shared-set version: `content/` in the working tree — the producer tracks its branch,
 not a release.
 
-**Every file in `content/` is its own tool**, named after its filename, so the tool list is
-the file list. Start at `automation` rather than calling everything.
+**Every file in `content/` is its own tool**, named after its filename with the
+`lxagents_skills_shared_instruction_` prefix, so the tool list is the file list. Start at `lxagents_skills_shared_instruction_automation` rather than calling everything.
 
 | When you are about to… | Call | Which is |
 |---|---|---|
-| Start any session | `automation` | [`content/automation.md`](content/automation.md) |
-| Take in any request of more than one step | `plan_creator` | [`content/creators/plan-creator.md`](content/creators/plan-creator.md) |
-| Create a branch | `branching_strategy` | [`content/git/branching-strategy.md`](content/git/branching-strategy.md) |
-| Write a commit message | `commit_conventions` | [`content/git/commit-conventions.md`](content/git/commit-conventions.md) |
-| Notice a rule that should exist | `discovery_protocol` | [`content/rules/discovery-protocol.md`](content/rules/discovery-protocol.md) |
-| Open or update a pull request | `pull_request_template` | [`content/git/pull-request-template.md`](content/git/pull-request-template.md) |
-| Write to any `model_name` column | `model_naming_convention` | [`content/rules/model-naming-convention.md`](content/rules/model-naming-convention.md) |
+| Start any session | `lxagents_skills_shared_instruction_automation` | [`content/automation.md`](content/automation.md) |
+| Take in any request of more than one step | `lxagents_skills_shared_instruction_plan_creator` | [`content/creators/plan-creator.md`](content/creators/plan-creator.md) |
+| Create a branch | `lxagents_skills_shared_instruction_branching_strategy` | [`content/git/branching-strategy.md`](content/git/branching-strategy.md) |
+| Write a commit message | `lxagents_skills_shared_instruction_commit_conventions` | [`content/git/commit-conventions.md`](content/git/commit-conventions.md) |
+| Notice a rule that should exist | `lxagents_skills_shared_instruction_discovery_protocol` | [`content/rules/discovery-protocol.md`](content/rules/discovery-protocol.md) |
+| Open or update a pull request | `lxagents_skills_shared_instruction_pull_request_template` | [`content/git/pull-request-template.md`](content/git/pull-request-template.md) |
+| Write to any `model_name` column | `lxagents_skills_shared_instruction_model_naming_convention` | [`content/rules/model-naming-convention.md`](content/rules/model-naming-convention.md) |
 
-`automation` is read at the start of every session. `plan_creator`, `branching_strategy`,
-`commit_conventions` and `discovery_protocol` are mandatory in every repository, this one
+`lxagents_skills_shared_instruction_automation` is read at the start of every session. `lxagents_skills_shared_instruction_plan_creator`, `lxagents_skills_shared_instruction_branching_strategy`,
+`lxagents_skills_shared_instruction_commit_conventions` and `lxagents_skills_shared_instruction_discovery_protocol` are mandatory in every repository, this one
 included. **No tool takes an argument** — a tool names one file, so there is no path to pass.
 
 ## Using the connector
@@ -120,14 +120,14 @@ That is the common case, and it looks like a broken server rather than a stale s
 
 ### Read from it
 
-1. Enumerate the tools. Every file in `content/` is one, named after its filename (the
-   GitHub and GitLab pages are named for their forge), with its `description` attached — that
+1. Enumerate the tools. Every file in `content/` is one, named after its filename behind the
+   `lxagents_skills_shared_instruction_` prefix (the GitHub and GitLab pages are named for their forge), with its `description` attached — that
    list is the manifest, and it costs nothing to read.
-2. Call `automation` once. It lists every tool and the condition that activates each. Never
+2. Call `lxagents_skills_shared_instruction_automation` once. It lists every tool and the condition that activates each. Never
    bulk-call the set.
 3. Call the one tool whose condition is true. None takes an argument.
 
-**`automation` is the only instruction called at session start.** Every other tool returns one file
+**`lxagents_skills_shared_instruction_automation` is the only instruction called at session start.** Every other tool returns one file
 when its condition fires. Calling every tool up front rebuilds the one oversized payload this
 surface replaced, one call at a time — and there are dozens of them.
 

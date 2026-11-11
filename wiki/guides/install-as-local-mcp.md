@@ -151,7 +151,7 @@ instead, under the same name; without the header every request is a `401`.
 **`mcps/` must be in this repository's `.gitignore`.** The clone is a runtime, not
 content. It is never committed.
 
-Once it resolves, read `automation` and route from there. Every file in the set is its own
+Once it resolves, read `lxagents_skills_shared_instruction_automation` and route from there. Every file in the set is its own
 tool, named after its filename, so the tool list is the index — call the one whose
 condition is true. Never copy a shared file into this repository: if you can read it from the
 connector, it must not exist here as a file.

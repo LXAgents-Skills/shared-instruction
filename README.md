@@ -18,10 +18,10 @@ instead of cloning or vendoring a copy of them.
 ## Key features
 
 - **One file, one tool.** Every `.md` under `content/` becomes a tool named after its own
-  filename, so `git/commit-conventions.md` is `commit_conventions`. **Adding a file to the
+  filename, so `git/commit-conventions.md` is `lxagents_skills_shared_instruction_commit_conventions`. **Adding a file to the
   set adds its tool** — there is no registry to edit and no tool module to write, only one
-  row in `automation`. The documented exceptions are the GitHub and GitLab pages, named for
-  their forge (`github_api`, `gitlab_ci`, …), because four filenames exist on both forges.
+  row in `lxagents_skills_shared_instruction_automation`. The documented exceptions are the GitHub and GitLab pages, named for
+  their forge (`lxagents_skills_shared_instruction_github_api`, `lxagents_skills_shared_instruction_gitlab_ci`, …), because four filenames exist on both forges.
 - **No tool takes an argument.** A tool names one file, so there is no path to pass, no
   lookup to guess at, and **nothing for a caller to traverse with**. This is the structural
   replacement for a path argument, not a weaker check on one: `test/server.test.js`
@@ -34,7 +34,7 @@ instead of cloning or vendoring a copy of them.
 - **The description is the routing key.** A tool's description is that file's own
   frontmatter `description`, verbatim. A file without one **fails at boot**: it would
   publish as a tool a client cannot route on.
-- **One tool is read at session start: `automation`.** It lists every other tool and the
+- **One tool is read at session start: `lxagents_skills_shared_instruction_automation`.** It lists every other tool and the
   condition that activates each, and a session calls the others only when their condition is
   true. A session that only branches and commits pays for the hub and two files, not the
   whole set.
@@ -42,7 +42,7 @@ instead of cloning or vendoring a copy of them.
   stores no model identifier does not carry a row about one, and the narrowing is visible
   in a diff rather than buried in a payload.
 - **Each tool ends in itself.** No tool links to, names, or sends the reader to another;
-  only `automation` names them all. `test/server.test.js` fails if one does.
+  only `lxagents_skills_shared_instruction_automation` names them all. `test/server.test.js` fails if one does.
 
 ## Quick start
 
