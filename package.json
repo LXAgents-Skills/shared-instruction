@@ -1,6 +1,6 @@
 {
   "name": "@lxagents-skills/shared-instruction",
-  "version": "6.0.4",
+  "version": "6.0.5",
   "description": "Read-only MCP server that delivers the LXAgents shared agent instruction set — branch strategy, commit conventions, rules, creators — plus a registry of the sibling instruction and security servers.",
   "type": "module",
   "main": "dist/index.js",
