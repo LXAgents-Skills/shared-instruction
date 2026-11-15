@@ -1,6 +1,5 @@
-# Installed inside the image, never copied in
-node_modules
-dist
+# Built inside the image, never copied in
+target
 
 # Version control and CI
 .git
@@ -8,7 +7,7 @@ dist
 .github
 
 # Not needed at runtime
-test
+tests
 wiki
 .agents
 AGENTS.md
@@ -24,4 +23,3 @@ compose.yaml
 .DS_Store
 .idea
 .vscode
-coverage
