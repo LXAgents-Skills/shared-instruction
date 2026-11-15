@@ -10,11 +10,12 @@ which is why that path has nothing to configure — and why it needs no token.
 | `HOST` | `0.0.0.0` | The interface it binds. **A loopback host (`127.0.0.1`, `localhost`, `::1`) is a local install**: no token needed, and the `Host` header is limited to `localhost`, `127.0.0.1` and `[::1]` unless `MCP_ALLOWED_HOSTS` says otherwise. |
 | `MCP_ALLOWED_HOSTS` | unset | Comma-separated hostnames permitted in the `Host` header. **Off when unset.** |
 | `MCP_AUTH_TOKEN` | **none — required for HTTP off loopback** | The bearer token every HTTP request except `GET /healthz` must carry. At least 32 characters. **HTTP on any non-loopback `HOST`, the default included, will not start without it.** On loopback it is optional, and enforced when set. stdio never reads it. |
-| `MCP_TRANSPORT` | `stdio` | Which transport `src/index.ts` speaks: `stdio`, or `http` (`streamable-http` is accepted too). `http` reaches `src/http.ts`, which serves `POST /mcp`. |
-| `MCP_CLUSTER_WORKERS` | CPU count | How many HTTP worker processes to fork. **`1` forks nothing.** |
+| `MCP_TRANSPORT` | `stdio` | Which transport the main binary, `lxagents-shared-instruction`, speaks: `stdio`, or `http` (`streamable-http` is accepted too, in any case). `http` runs the same HTTP server as `lxagents-shared-instruction-http`. |
+| `MCP_CLUSTER_WORKERS` | CPU count | How many Tokio worker threads answer HTTP requests. **`1` is a single-threaded runtime.** The name is kept from the Node server, which forked processes. |
 
-`src/index.ts` reads `MCP_TRANSPORT` and nothing else. The HTTP path — `src/http.ts`, and the
-app and `src/auth.ts` it builds — reads the other five.
+`src/main.rs` reads `MCP_TRANSPORT` and nothing else. The HTTP path reads the other five, once,
+in `HttpConfig::from_env` in `src/http.rs`, and passes the values to the app and the token
+check; nothing deeper reads the environment.
 
 **When `MCP_AUTH_TOKEN` is required.** Where the server can be reached decides: a server a
 client spawns is a pipe on the client's own machine, and HTTP bound to loopback is a socket
@@ -24,12 +25,12 @@ holds the token. **Never put a reverse proxy in front of a token-less loopback s
 proxy would make it reachable, and nothing would stop the caller. Off loopback the token is
 required rather than optional. An optional token would mean a deployment that forgot to set it ran
 open and said nothing, so instead the process refuses to start — one line on stderr naming the
-variable, and exit code `1` — and `createApp` refuses to build without it, so the check cannot
+variable, and exit code `1` — and `create_app` refuses to build without it, so the check cannot
 be skipped by calling the app directly.
 
 ```bash
 export MCP_AUTH_TOKEN="$(openssl rand -hex 32)"    # 64 hex characters; keep it, clients need it
-npm run start:http
+target/release/lxagents-shared-instruction-http
 ```
 
 * **Length.** Anything under 32 characters is refused at startup, so a value like `test` is
@@ -49,27 +50,26 @@ npm run start:http
 * **Put TLS in front.** A bearer token sent over plain `http` can be read by anyone on the
   path. This server does not terminate TLS; whatever fronts it must.
 
-**Why `MCP_CLUSTER_WORKERS` defaults to a count rather than a number.** One process
-handling every request leaves the other CPUs idle, so the default is
-`os.availableParallelism()` — the number of CPUs the process was actually given. A container
-with two CPUs gets two workers and a laptop does not get eight, and neither has to be told.
+**Why `MCP_CLUSTER_WORKERS` defaults to a count rather than a number.** One thread handling
+every request leaves the other CPUs idle, so the default is
+`std::thread::available_parallelism()` — the number of CPUs the process was actually given. A
+container with two CPUs gets two threads and a laptop does not get eight, and neither has to be
+told.
 
 ```bash
-MCP_CLUSTER_WORKERS=4 npm run start:http     # four workers
-MCP_CLUSTER_WORKERS=1 npm run start:http     # one process, no fork
+MCP_CLUSTER_WORKERS=4 target/release/lxagents-shared-instruction-http     # four worker threads
+MCP_CLUSTER_WORKERS=1 target/release/lxagents-shared-instruction-http     # single-threaded
 ```
 
-**`1` means no forking at all**, and that is deliberate rather than a degenerate case: the
-same code answers with and without workers, so a difference between the two is a difference
-in the fork rather than in the transport. It is also what makes the cluster bisectable
-against a single-process deployment. A value below `1` is ignored rather than clamped —
-`0` means "I did not mean to set this", and running zero workers would bind no port at all.
+**`1` is a single-threaded runtime**, and the startup line says which setting produced the count.
+A value below `1`, or one that is not a number, is ignored rather than clamped — `0` means "I
+did not mean to set this", not "run nothing".
 
-**Every worker binds the same `PORT`.** The kernel's shared handle and the round-robin
-scheduler do the distribution; no `SO_REUSEPORT` is set by hand and no sticky-session
-affinity is written, because the scheduler already knows which connection is next. **The
-primary binds nothing and writes no startup line of its own**, so a container's log carries
-one `serving over http` line per worker, from the processes that genuinely hold the port.
+**There is one listener whatever the count.** The Node server forked one process per worker and
+each bound the port through the cluster's shared handle, so its log carried one startup line per
+worker. Here one process binds once and the runtime spreads the connections over its threads, so
+the log carries one `serving Skill MCP over http` line, and there is no worker process to
+respawn or to orphan.
 
 **Why `MCP_ALLOWED_HOSTS` is off by default, and why that is worth knowing.** It is a
 DNS-rebinding guard: it stops a browser on someone's machine resolving an attacker's domain
@@ -82,32 +82,28 @@ allow-list is configured, rather than leaving the absence to be inferred from si
 Setting it is one variable:
 
 ```bash
-MCP_ALLOWED_HOSTS=shared-instruction.example.com,localhost npm run start:http
+MCP_ALLOWED_HOSTS=shared-instruction.example.com,localhost target/release/lxagents-shared-instruction-http
 ```
 
 ## What configures the server instead
 
 | Thing | How it is set |
 |---|---|
-| Which file to serve | The path to `dist/index.js` in the client's server config. |
-| The instruction set | `content/` beside the package. Resolved from the module's own location, not from the working directory, so it does not matter where the client was started from. |
-| The version reported at `initialize` | `package.json`, read at import. |
-| Transport | Which entry point is run: `dist/index.js` for stdio, `dist/http.js` for HTTP — or `MCP_TRANSPORT=http` on `dist/index.js`, which reaches the second one for you. |
+| Which binary to run | The path in the client's server config: `target/release/lxagents-shared-instruction`. |
+| The instruction set | `content/`, found from the binary's own path: the first ancestor directory of the executable that holds one, else the checkout it was built from. Not from the working directory, so it does not matter where the client was started from. |
+| The version reported at `initialize` | `Cargo.toml`, compiled in. |
+| Transport | Which binary is run: `lxagents-shared-instruction` for stdio, `lxagents-shared-instruction-http` for HTTP — or `MCP_TRANSPORT=http` on the first. |
 
 ## What this page deliberately does not document
 
-Session modes, content-root overrides, and the twelve variables an earlier transport
-carried. None of them exists, and this is a second revision of a page that documented them
-and then had to un-document them. If a future transport reintroduces one, it comes back
-here — but it should not arrive silently.
+Session modes, content-root overrides, and the twelve variables an earlier transport carried.
+None of them exists. If a future transport reintroduces one, it comes back here — but it should
+not arrive silently.
 
-## Why the content root is resolved from the module
+## Why the content root is resolved from the binary
 
-`src/version.ts` builds `CONTENT_DIR` from `import.meta.url` rather than from `process.cwd()`.
-A client that spawns the server from an arbitrary working directory would otherwise read a
-different — or no — instruction set, and the failure would look like an empty connector
-rather than a path bug. The HTTP transport is bound by the same rule and resolves its
-content root the same way, so serving from a different directory changes nothing. **A forked
-worker resolves it once per worker**, which is why the count is CPU count rather than
-"one and done": each worker pays the boot cost of reading the set, and that is a deliberate
-trade for using the CPUs rather than one.
+`src/version.rs` finds `content/` from `std::env::current_exe()` rather than from the working
+directory. A client that spawns the server from an arbitrary working directory would otherwise
+read a different — or no — instruction set, and the failure would look like an empty connector
+rather than a path bug. No variable chooses it, so a caller cannot point the server at another
+directory. The set is read once per process, at boot, by whichever binary runs.

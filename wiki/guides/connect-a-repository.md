@@ -4,25 +4,27 @@ How to put a repository onto the shared instruction set.
 
 ## 1. Add the connector
 
-The server speaks **stdio by default**, so this is a local command:
+The server speaks **stdio by default**, so this is a local command: the binary built from a
+clone with `cargo build --release`.
 
 ```json
 {
   "mcpServers": {
     "lxagents-shared-instruction": {
-      "command": "npx",
-      "args": ["-y", "@lxagents-skills/shared-instruction"]
+      "command": "./mcps/LXAgents-Skills/shared-instruction/target/release/lxagents-shared-instruction"
     }
   }
 }
 ```
 
-To run it from a checkout instead, run `npm install` in the clone (it builds `dist/`), then point `command: node` at
-`dist/index.js` with `cwd` set to the clone — the full procedure, including where to put the clone, is in
-[Install as a local Skill MCP server](install-as-local-mcp.md).
+The full procedure, including where to put the clone, is in
+[Install as a local Skill MCP server](install-as-local-mcp.md). **There is no npm package
+from 6.0.6**: a config running `npx -y @lxagents-skills/shared-instruction` or
+`node dist/index.js` gets the last TypeScript release, 6.0.5, or nothing, and should be
+replaced with the entry above.
 
 **There is also a remote form**, for a server running at a fixed address rather than
-spawned per client. Start it with `npm run start:http` — it binds `0.0.0.0:3000` unless
+spawned per client. Start it with `target/release/lxagents-shared-instruction-http` — it binds `0.0.0.0:3000` unless
 `PORT` says otherwise, and on any address but loopback it **will not start without `MCP_AUTH_TOKEN`** — and register it by
 URL, sending the same token as a bearer credential:
 
