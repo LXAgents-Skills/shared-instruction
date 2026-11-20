@@ -68,3 +68,4 @@ the same commit that creates it.
 | [`../memory/tasks/prefixed-tool-ids.md`](../memory/tasks/prefixed-tool-ids.md) | Prefixing every tool id with `lxagents_skills_shared_instruction_` and moving the automation hub to the new ids. |
 | [`../memory/tasks/local-http-token.md`](../memory/tasks/local-http-token.md) | HTTP on loopback starts without `MCP_AUTH_TOKEN`; any other bind still requires it. |
 | [`../memory/tasks/typescript-migration.md`](../memory/tasks/typescript-migration.md) | Moving `src/` and `test/` to strict TypeScript compiled to `dist/` on `npm install`, on the latest dependencies. |
+| [`../memory/tasks/rust-migration.md`](../memory/tasks/rust-migration.md) | Rewriting the server and its tests in Rust on `rmcp` and `axum`, with the tool surface byte-identical. |
