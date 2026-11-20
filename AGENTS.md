@@ -105,9 +105,8 @@ branch. Everywhere else, read the connector's tools.
 
 | Transport | How |
 |---|---|
-| Local stdio (default) | `command: node`, `args: ["dist/index.js"]`, `cwd:` this checkout |
-| Published | `command: npx`, `args: ["-y", "@lxagents-skills/shared-instruction"]` |
-| HTTP | `type: http`, `url: https://<host>/mcp` — `npm run start:http` binds `PORT \|\| 3000` |
+| Local stdio (default) | `command: <checkout>/target/release/lxagents-shared-instruction`, no args, after `cargo build --release` |
+| HTTP | `type: http`, `url: https://<host>/mcp` — `target/release/lxagents-shared-instruction-http` binds `PORT`, default 3000 |
 
 Both transports serve the same tool surface — one tool per file in `content/`, and
 nothing else. Do not state a count here: it goes stale at the next file added. To get the
@@ -142,7 +141,7 @@ Never reconstruct the missing rules from memory, and never clone or paste the sh
 into a repository as a workaround — an unavailable connector is temporary, a vendored
 copy is permanent drift.
 
-To inspect the surface by hand while developing on the set itself, run `npm run inspect`
+To inspect the surface by hand while developing on the set itself, run `npx @modelcontextprotocol/inspector target/release/lxagents-shared-instruction`
 and drive it with the MCP Inspector.
 
 ## Trigger table — this repository's own rows
