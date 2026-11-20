@@ -77,3 +77,8 @@ Rewrote the install, connect, setup, env, docker, architecture, surface and secu
 security boundaries, `content-publishing.md`, `set-mirrors.md` and the repository state. A client
 now registers `<checkout>/target/release/lxagents-shared-instruction` after
 `cargo build --release`, with no args and no cwd; `node dist/index.js` is gone.
+
+### Task 4 — release/6.0.6
+
+Released as 6.0.6. Pull requests, merged in order: #27 (plan), #28 (server), #29 (docs),
+#30 (release). `commit_conventions` was called before every commit in the chain.
