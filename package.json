@@ -22,7 +22,7 @@
     "start:http": "node dist/http.js",
     "pretest": "npm run build && npm run typecheck",
     "test": "node --import tsx --test test/*.test.ts",
-    "inspect": "npx @modelcontextprotocol/inspector node dist/index.js"
+    "inspect": "npx -y @modelcontextprotocol/inspector@latest --cli --method tools/list node dist/index.js"
   },
   "engines": {
     "node": ">=20"
