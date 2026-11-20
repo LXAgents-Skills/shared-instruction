@@ -69,3 +69,11 @@ Not verified: the image build. This environment has the Docker client but no dae
 
 Left for task 3: every page in `wiki/`, `README.md`, `AGENTS.md`, `.agents/wiki/` and
 `.agents/rules/content-publishing.md` still describes Node, `npm` and `dist/`.
+
+### Task 3 — docs/rust-install
+
+Rewrote the install, connect, setup, env, docker, architecture, surface and security pages in
+`wiki/`, `README.md`, the "Register it" table in `AGENTS.md`, the agent repository map, the
+security boundaries, `content-publishing.md`, `set-mirrors.md` and the repository state. A client
+now registers `<checkout>/target/release/lxagents-shared-instruction` after
+`cargo build --release`, with no args and no cwd; `node dist/index.js` is gone.

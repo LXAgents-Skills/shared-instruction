@@ -27,7 +27,7 @@ go into `content/`.
 
 ## Boot invariants
 
-`src/instructions/from-content.ts` builds the whole tool surface at import and **throws rather
+`src/instructions.rs` builds the whole tool surface at boot and **fails rather
 than start** when one of these is violated. They are not style preferences; each one would
 break a consuming repository silently:
 
@@ -43,7 +43,7 @@ The first two are why the derivation is mechanical and exceptions are explicit. 
 collision is resolved by adding an entry to `NAME_OVERRIDES`, never by renaming a file to
 fit.
 
-`npm test` checks those and pins the properties they do not cover: `name` and `description`
+`cargo test` checks those and pins the properties they do not cover: `name` and `description`
 frontmatter on every file, files and tools as a bijection in **both** directions, no tool
 declaring an input schema, every file served byte-for-byte as it sits on disk, no tool
 but `lxagents_skills_shared_instruction_automation` pointing at another, and `lxagents_skills_shared_instruction_automation` routing every tool once and staying
@@ -84,7 +84,7 @@ upgrade step. That makes the release log the only notice they get, so:
    line filled in: nothing, re-read a file, or drop an override.
 3. Add the row to [`.agents/index/logs-index.md`](../../.agents/index/logs-index.md),
    newest first.
-4. Update `package.json`.
+4. Update the version in `Cargo.toml`, and `Cargo.lock` with it.
 
 **Adding a file is a minor bump and one row in the hub.** It arrives as a new tool; no
 existing consumer has to act, and no source file changes to publish it.
@@ -98,7 +98,7 @@ authoritative. A deletion has the same effect one release later.
 
 The set is read once at boot into a frozen map, so editing `content/` has no effect on a
 running process. stdio has no watch mode; restart the client, or the server, to pick a
-change up. `npm run inspect` shows the surface a fresh process would build.
+change up. `npx @modelcontextprotocol/inspector target/release/lxagents-shared-instruction` shows the surface a fresh process would build.
 
 ## Change the file, not the surface
 
