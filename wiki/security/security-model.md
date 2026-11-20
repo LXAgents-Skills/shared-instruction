@@ -10,9 +10,9 @@ A read-only publisher. It reads markdown from `content/` once at boot into a fro
 serves it over Skill MCP. There is no database, no user accounts, and nothing persisted at
 runtime.
 
-**It has two transports, and one of them is a network listener.** `src/index.ts` speaks
-stdio, which is a pipe a client spawns. `src/http.ts` speaks stateless HTTP, which binds a
-port. The second is newer than this page's previous revision, and it changes the shape of
+**It has two transports, and one of them is a network listener.** The
+`lxagents-shared-instruction` binary speaks stdio, which is a pipe a client spawns.
+`lxagents-shared-instruction-http` speaks stateless HTTP, which binds a port. The second is newer than this page's previous revision, and it changes the shape of
 everything below: the interesting risk is still not data theft, because the content is
 public by design, but a listener adds a reachability question that a pipe does not have. The
 answer to it is a bearer token, required on every HTTP request and absent from stdio.
@@ -37,7 +37,8 @@ command, write a file, weaken a convention, or skip a permission gate. Review a
 effect it does. This is why `content/` changes are versioned and logged like a release —
 the log entry is the only notice a consumer ever gets.
 
-Note what makes this worse rather than better: the set is published to npm. Nothing in the
+Note what makes this worse rather than better: every consumer builds from a clone of this
+repository, so a merged change reaches them at their next `git pull` and build. Nothing in the
 distribution path is a review either.
 
 ## Attack surface
@@ -47,10 +48,10 @@ distribution path is a review either.
 | Instruction calls | Whoever can spawn the process (stdio), whoever is on this machine (HTTP on loopback with no token), or whoever holds the token (HTTP otherwise) | **Nothing beyond that, and that is the design.** Every tool is read-only and takes no argument. There is no path, no verb, and no target a caller can supply. |
 | Path reads | None | No tool takes a path and nothing opens a file a caller named. The set is read once at boot from a fixed directory. Detailed below. |
 | **The HTTP listener** | **Anyone who can reach the port** | **A bearer token**, `MCP_AUTH_TOKEN`: every route except `GET /healthz` refuses without it, and off loopback the process will not start without one. On loopback with no token, the bind keeps other machines out and a `Host` allow-list of `localhost`, `127.0.0.1` and `[::1]` keeps out DNS rebinding. Otherwise an optional `Host` allow-list via `MCP_ALLOWED_HOSTS`, **off unless set**. No TLS and no rate limiting — those belong to whatever fronts the port. Detailed below. |
-| In-flight requests | Anyone who holds the token | One `McpServer` per request, never shared, closed when its response closes. **The set of them is per-request closers, not a map of live sessions** — a stateless transport has no id to key on and keeps nothing between requests, so there is no store to fill. |
-| Process startup | Anyone who can spawn it | Reads `package.json` and walks `content/`. Malformed content throws and the process exits rather than serving something wrong. |
-| Dependency install | Build time | `npm install` runs lifecycle scripts, including this package's own `prepare`, which runs `tsc` to build `dist/`. `npm ci --ignore-scripts` is the safer form for a build you do not control; follow it with `npm run build`. |
-| Publishing | Anyone with npm credentials | Publishing changes what every consumer reads. Treat a release as a security-relevant action, because it is one. |
+| In-flight requests | Anyone who holds the token | One handler per request, never shared, dropped when its response is done. **What is tracked is a count, not a map of live sessions** — a stateless transport has no id to key on and keeps nothing between requests, so there is no store to fill. |
+| Process startup | Anyone who can spawn it | Walks the `content/` found beside the binary. Malformed content stops the process with exit code 1 rather than serving something wrong. |
+| Dependency build | Build time | `cargo build` compiles crates from crates.io, and a crate's `build.rs` runs code on the build machine. This crate has no `build.rs` of its own. `cargo build --locked` builds exactly what `Cargo.lock` pins, which is what the image does. |
+| Publishing | Anyone who can merge to `master` | Nothing is published to npm or crates.io (`publish = false`); a merge changes what every consumer builds next. Treat a release as a security-relevant action, because it is one. |
 
 ## The HTTP listener
 
@@ -68,12 +69,11 @@ what a caller who clones the repository and runs it locally gets. There is no pr
 operation to reach and no state to corrupt. The listener widens who can ask, not what they
 can do once they have — and it now asks them for one credential before it answers.
 
-**And the worker pool does not widen it either.** `src/http.ts` forks one process per CPU by
-default, but every worker binds the same port and serves the same 33 read-only tools, so the
-pool multiplies capacity rather than surface. Two things follow that are worth stating:
-there is still nothing shared between workers to corrupt — each builds its own `McpServer`
-per request — and the `Host` allow-list is evaluated by every worker independently, so
-there is no way to reach a worker that skipped it.
+**And the worker threads do not widen it either.** The HTTP server runs one Tokio worker
+thread per CPU by default, behind one listener, serving the same read-only tools, so the pool
+multiplies capacity rather than surface. Every request passes through the same middleware
+stack whichever thread runs it, so there is no way to reach a thread that skipped the `Host`
+check or the token, and the only shared state is the loaded set, which is never written.
 
 **Authentication, and what it is for.** The transport decides. A stdio server is a pipe the
 client spawns on its own machine, so the only caller is whoever already runs the process and
@@ -91,7 +91,7 @@ an open server** — set `MCP_AUTH_TOKEN` before exposing it in any way. A token
 enforced exactly as off it.
 
 **What the token gates is the service, not the text.** The content is an instruction set
-meant to be read by every repository in the organization, and it is also on npm; a token does
+meant to be read by every repository in the organization, and it is in a public repository; a token does
 not make a single byte of it confidential. What it controls is who may use a *deployed
 instance*: a caller without it is refused before a body is read or a route is revealed, so the
 instance is not an open service for anyone who finds the address, and the owner can cut off
@@ -101,10 +101,10 @@ and it is the only one made.
 **How it is built, and why each part is the way it is.**
 
 * **Fail closed.** The process exits `1` with one line if the token is unset or under 32
-  characters, and `createApp` throws too, so an unauthenticated HTTP server cannot come from
+  characters, and `create_app` refuses too, so an unauthenticated HTTP server cannot come from
   forgetting an option, calling the app directly, or a typo in the variable's name. There is
-  no flag that turns it off. The check runs in the primary before any worker is forked:
-  left to the workers, a missing token would be a respawn loop through the crash limit.
+  no flag that turns it off. The check runs before the runtime is built or the port bound, so
+  a missing token is reported once and nothing listens.
 * **Constant-time comparison** over SHA-256 digests, so neither the token's length nor how
   much of a guess was right shows in the response time.
 * **Header only.** No query-string form, because a URL ends up in access logs, proxies and
@@ -145,9 +145,9 @@ This default is worth distrusting, because the last implementation of this serve
 same shape and it was a live problem: `MCP_DNS_REBINDING_PROTECTION` defaulted to `false`,
 so `originGuard`'s allow-lists did nothing at all — see
 `.agents/memory/tasks/activation-security.md`. The same trap is reachable again here, and
-narrower: the SDK's `createMcpExpressApp` applies protection automatically for loopback
-hosts only, and **a container binds `0.0.0.0`**, which is the deployment this transport
-exists to enable.
+narrower: rmcp's own `Host` check accepts only loopback names by default and is switched off
+here so this server's middleware can run first with its own answer, and **a container binds
+`0.0.0.0`**, which is the deployment this transport exists to enable.
 
 For a server on a routable interface, the exposure is DNS rebinding — a browser on
 someone's machine resolving an attacker-controlled name to a local or internal address, and
@@ -172,7 +172,7 @@ gets one, and a deployment that does not has not lost anything it had.
 **There are no sessions.** The transport this replaced was stateful: it minted a session
 that lived as long as the client's stream, and an unauthenticated public port with an
 unbounded session map is a memory-growth primitive. `POST /mcp` mints nothing. Each request
-carries everything it needs, builds its own `McpServer`, and is closed when its response
+carries everything it needs, builds its own handler, and is closed when its response
 closes — so the memory-growth primitive this paragraph used to have a mitigation for is
 gone rather than bounded, and the only thing a shutdown counts is what is running right
 now. See *Attack surface* above, and the per-request row in it.
@@ -198,9 +198,9 @@ the limits are in **The HTTP listener** above.
 
 The token does not change what the content is. **Nothing confidential goes in `content/`, in
 `wiki/`, or anywhere else in this repository.** Treat every file here as world-readable,
-because it is — it is on npm, and in a checkout, whatever the deployed instance asks of its
+because it is — it is in a public repository and in every checkout, whatever the deployed instance asks of its
 callers. If a future change makes any served content non-public, a token on this server is not
-the delivery mechanism for it: the text would still ship in the package. That change needs a
+the delivery mechanism for it: the text would still ship in every clone. That change needs a
 different one.
 
 ## Secrets
@@ -214,8 +214,8 @@ six environment variables, and the other five are not credentials:
 | `HOST` | `0.0.0.0` | The interface to bind. An address. A loopback address makes the token optional. |
 | `MCP_ALLOWED_HOSTS` | unset | Hostnames permitted in the `Host` header. **Off when unset.** |
 | `MCP_AUTH_TOKEN` | **none** | **A secret.** The bearer token every HTTP request except `GET /healthz` must carry. At least 32 characters; HTTP off loopback will not start without it; stdio never reads it. |
-| `MCP_TRANSPORT` | `stdio` | Which transport `src/index.ts` speaks. A word. |
-| `MCP_CLUSTER_WORKERS` | CPU count | How many HTTP worker processes to fork. A number. |
+| `MCP_TRANSPORT` | `stdio` | Which transport the main binary speaks. A word. |
+| `MCP_CLUSTER_WORKERS` | CPU count | How many Tokio worker threads answer HTTP. A number. |
 
 The token is held by whoever deploys the service and by each client, and by nothing else. It
 lives in the process environment, an `env_file`, or the host's secret store — never in
@@ -235,38 +235,32 @@ goes in `.env.example`.
 The server can be run two ways, and they have genuinely different exposure.
 
 **stdio** — a client spawns the process and speaks JSON-RPC over a pipe. Exposure is
-bounded by who can run the process at all. `npm start` and `npm run start:stdio` are the
-same command, named for what it is.
+bounded by who can run the process at all: `target/release/lxagents-shared-instruction`.
 
-**HTTP** — `npm run start:http` binds a port and serves the same tools, stateless, at
+**HTTP** — `target/release/lxagents-shared-instruction-http` binds a port and serves the same tools, stateless, at
 `POST /mcp`, with a `GET /healthz` beside it. Exposure is bounded by who can reach that
 port **and** holds `MCP_AUTH_TOKEN`; off loopback the process will not start without one. It is designed to be deployed as a Web Service, and it is not deployed anywhere by
 this repository: there is no host, no hostname, and no registry image, and the
 documentation says "can be deployed" rather than "is deployed" for that reason.
 
-**A `Dockerfile` exists and can do either.** The image pins the toolchain, installs from
-the lockfile with `--ignore-scripts` in both of its stages (the first compiles `dist/`, the
-second carries it without the compiler), and ends as `USER node`. It declares `EXPOSE 3000`
-and its default entrypoint is still the stdio server; the HTTP one is a command away:
+**A `Dockerfile` exists and can do either.** The image pins the toolchain, builds with
+`cargo build --release --locked` in a first stage, carries only the two binaries and
+`content/` into an `alpine` runtime stage without the compiler, and ends as a non-root `USER`.
+It declares `EXPOSE 3000` and its default command is the stdio server; the HTTP one is a command
+away:
 
 ```bash
-docker run --rm -i lxagents-shared-instruction:6.0.5                     # stdio
-docker run --rm -p 3000:3000 -e MCP_AUTH_TOKEN lxagents-shared-instruction:6.0.5 \
-  node dist/http.js                                                        # HTTP, token required
+docker run --rm -i lxagents-shared-instruction:6.0.6                     # stdio
+docker run --rm -p 3000:3000 -e MCP_AUTH_TOKEN lxagents-shared-instruction:6.0.6 \
+  lxagents-shared-instruction-http                                         # HTTP, token required
 ```
 
-A container here is both a way to run the server without Node 20 and, with that second
-command, a network boundary — so it should now be described as one where it is one, and
-the earlier claim that it could not be was true only while stdio was the whole interface.
+Three properties of the image are load-bearing and are checked before committing it: the build
+is `--locked`, the process is not root, and the exposed port matches the one the server binds.
 
-Three properties of the image are load-bearing and are checked before committing it: the
-install runs with lifecycle scripts disabled, the process is not root, and the exposed
-port matches the one the server binds. Either of the first two dropped turns a pinned
-non-root image into one that runs third-party install hooks as root.
-
-**The image has still never been built.** Docker is not available in the environment these
-changes were written in, so the `EXPOSE` and entrypoint changes are unverified by build.
-That is recorded here rather than left to be assumed.
+**The Rust image has not been built yet.** The environment the migration was written in has the
+Docker client but no daemon, so the `Dockerfile` is unverified by build. That is recorded here
+rather than left to be assumed.
 
 ## Reporting something
 

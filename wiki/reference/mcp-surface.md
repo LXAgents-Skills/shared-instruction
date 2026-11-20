@@ -12,8 +12,8 @@ transports, and they expose the same tools. See
 | Field | Value |
 |---|---|
 | `name` | `lxagents-shared-instruction` |
-| `version` | from `package.json`, read at import by `src/version.ts` |
-| transport | stdio (`src/index.ts`), or stateless HTTP (`src/http.ts`, `POST /mcp`) with a required bearer token |
+| `version` | from `Cargo.toml`, compiled into `src/version.rs` |
+| transport | stdio (`lxagents-shared-instruction`), or stateless HTTP (`lxagents-shared-instruction-http`, `POST /mcp`) with a required bearer token off loopback |
 
 Every entry point calls the same `createServer()`, so the surface is identical by
 construction. A test asserts the two agree, tool for tool and byte for byte on a call.
@@ -66,8 +66,8 @@ disk. The frontmatter is part of the published text, not metadata to strip.
 **None. No tool takes an argument.**
 
 This is the load-bearing property of the surface, so it is asserted rather than
-described: `test/server.test.ts` checks that every tool's `inputSchema` has empty
-`properties` and empty `required`.
+described: `tests/surface.rs` checks that every tool's `inputSchema` is an object with empty
+`properties` and no `required`, and `tests/http_routes.rs` checks it over HTTP too.
 
 It is worth being precise about what that replaced. The surface used to be one tool taking
 a `path` string, and path traversal is a real concern for that design — which is why a
@@ -125,9 +125,9 @@ documented all of the following as if it were shipped. None of it is.
 |---|---|
 | **Prompts** | None. |
 | **Resources** | There is no `agents://` URI scheme to fetch and no `manifest.json`. |
-| **A CLI** | `package.json` declares one bin, `lxagents-shared-instruction`, which is the server. There is no `lxagents-agents`, no `list`/`read`/`setup`/`audit` subcommands, and no `npm run cli`. |
+| **A CLI** | `Cargo.toml` declares two binaries, `lxagents-shared-instruction` and `lxagents-shared-instruction-http`, and both are the server. Neither takes a flag or a subcommand. There is no `lxagents-agents` and no `list`/`read`/`setup`/`audit`. |
 | **A writer** | Every tool is read-only. The tools that would write the set are not registered rather than disabled, so pointing a repository at this server cannot mutate it. A test asserts that no tool accepts a write verb or a credential. |
-| **A registry of tools** | `src/constants.js`, `src/server/` and `src/cli.js` were removed. The surface is built by `src/instructions/from-content.ts` and the array in `src/server.ts`. |
+| **A registry of tools** | There is no hand-written list. The surface is built by `InstructionSet::load` in `src/instructions.rs` and served by `src/server.rs`. |
 | **Health and readiness endpoints** | `GET /healthz`, and nothing else. **This row previously read the opposite** — "No `/healthz`, no `/readyz`… a probe endpoint on a server that serves only public markdown is a route that exists to be scanned" — and the objection was met with consistency rather than refuted. The four sibling servers already serve `/healthz`, and a deployment that has to treat one of five identically shaped servers differently is one this repository declined to pay for. What answers is `{ status, server, version }` and nothing derived from the set, before any body is read, so the route is not a window onto the content. |
 | **Authentication on stdio** | None, and none is needed: a client spawns the process on its own machine, so the only caller is whoever already runs it. The HTTP transport is different — see below and the [security model](../security/security-model.md). |
 
@@ -142,10 +142,11 @@ token of at least 32 characters; on loopback with no token it serves without one
 id is minted, and there is no session store to bound. Any other method on `/mcp` is a 405
 that says so, and any other path is a JSON-RPC 404.
 
-The previous transport was a deprecated SSE one that held a session per open stream, and
-it is gone. `SSEServerTransport` is deprecated in the SDK in favour of
-`StreamableHTTPServerTransport`, and moving off it is breaking for every deployed client —
-see the task record under [`.agents/memory/tasks/`](../../.agents/memory/tasks/).
+The transport is rmcp's `StreamableHttpService` with session mode off and JSON responses on, so a
+simple call is answered as `application/json`; rmcp falls back to `text/event-stream` on its own
+if a handler ever sends a message before its result, and clients must accept both. An earlier
+transport was a deprecated SSE one that held a session per open stream, and it is gone — see the
+task records under [`.agents/memory/tasks/`](../../.agents/memory/tasks/).
 
 The full tool list is whatever the client enumerates from `tools/list`; it is never written
 down here, because a hand-maintained copy of a generated list is a copy that goes stale.
@@ -155,28 +156,26 @@ down here, because a hand-maintained copy of a generated list is a copy that goe
 The set is loaded once, so a session pays for `lxagents_skills_shared_instruction_automation` and the tools whose conditions
 actually fire. Calling every tool reproduces the oversized payload this design replaced, one
 call at a time — and there are dozens of them, so that is a real cost rather than a
-hypothetical one. `src/server.ts`'s `instructions` string says so at `initialize`, and
+hypothetical one. The `instructions` string in `src/server.rs` says so at `initialize`, and
 `lxagents_skills_shared_instruction_automation` says it again as a rule.
 
 ## Tests
 
-`test/server.test.ts` runs over a real MCP client on an in-memory transport, not a mock. It
-covers the frontmatter contract, the bijection both ways, name derivation and overrides,
-uniqueness and descriptions, the zero-argument claim, byte-for-byte fidelity, total-served
-equality, reachability, the hub (first, total, honest and small), the release-branch wording,
-that no tool points at another, and the read-only claim.
+`tests/surface.rs` runs over the real stdio binary, not a mock. It covers the frontmatter
+contract, the bijection both ways, name derivation and overrides, uniqueness and descriptions,
+the zero-argument claim, byte-for-byte fidelity, total-served equality, reachability, the hub
+(first, total, honest and small), the release-branch wording, and that no tool points at
+another.
 
-The `test/http.*.test.ts` files are the HTTP counterpart, one per subject (routes, hosts, limits, cluster, auth) with a shared harness in `test/helpers/http-harness.ts`, over a real client against a real listening process and a
-real cluster rather than an in-memory transport, because the things that can go wrong on the
-HTTP path are about sockets and process boundaries and do not reproduce in memory. Together they
+The `tests/http_*.rs` files are the HTTP counterpart, one per subject (routes, hosts, limits,
+auth), and `tests/runtime.rs` covers the binaries, threads and shutdown, all with a shared
+harness in `tests/common/mod.rs` that starts the built binary as a child process. Together they
 assert the two transports expose the same tools and return byte-identical payloads, that
-concurrent requests do not cross-talk — in one process or across two — that `/healthz`
-answers, that any other method on `/mcp` is a 405 and any other path a 404, that the routes
-the SSE transport used are **gone** rather than assumed to be, that the drain reports
-in-flight requests and not sessions, that nothing is written to stdout, that a dead worker
-is replaced and no worker outlives a killed primary, and that a `Host` header outside
-`MCP_ALLOWED_HOSTS` is actually rejected — over `node:http`, because `fetch` cannot set the
-header and would test nothing.
+concurrent requests do not cross-talk across worker threads, that `/healthz` answers, that any
+other method on `/mcp` is a 405 and any other path a 404, that the routes the SSE transport used
+are **gone**, that the drain reports in-flight requests, that nothing is written to stdout, and
+that a `Host` header outside `MCP_ALLOWED_HOSTS` is actually rejected — over a hand-written
+HTTP/1.1 request, so the test controls the header.
 
-There is no `test/tools.test.js` and no `test/logs.test.js`. Those covered the six-tool
+There is no tools suite and no logs suite. Those covered the six-tool
 convention surface and the changelog delta parser, both of which were removed.

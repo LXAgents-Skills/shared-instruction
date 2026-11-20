@@ -6,7 +6,7 @@ commits, pull requests, task workflow, the creators, the directory architecture 
 instead of cloning or vendoring a copy of them.
 
 - **Server id:** `lxagents-shared-instruction`
-- **Package:** `@lxagents-skills/shared-instruction`
+- **Crate:** `lxagents-shared-instruction`, built from a clone; not published to npm or crates.io
 - **Transport:** stdio, or stateless HTTP at `POST /mcp` for running it as a service at a
   fixed address. Both serve the same tool surface. **HTTP as a server requires a bearer token**
   (`MCP_AUTH_TOKEN`). A local install needs none: stdio never reads it, and HTTP bound to
@@ -14,7 +14,8 @@ instead of cloning or vendoring a copy of them.
 - **Surface:** one tool per markdown file in `content/`, and nothing else. Every one is
   read-only and every one takes no arguments. For the current count,
   enumerate the connector's tools.
-- **Requirements:** Node >= 20. TypeScript (strict, ESM) compiled to `dist/` by `npm install`.
+- **Requirements:** Rust >= 1.88. Built on the official MCP Rust SDK (`rmcp`) with `axum` for
+  HTTP, by `cargo build --release`.
 
 ## Key features
 
@@ -25,11 +26,11 @@ instead of cloning or vendoring a copy of them.
   their forge (`lxagents_skills_shared_instruction_github_api`, `lxagents_skills_shared_instruction_gitlab_ci`, …), because four filenames exist on both forges.
 - **No tool takes an argument.** A tool names one file, so there is no path to pass, no
   lookup to guess at, and **nothing for a caller to traverse with**. This is the structural
-  replacement for a path argument, not a weaker check on one: `test/server.test.ts`
+  replacement for a path argument, not a weaker check on one: `tests/surface.rs`
   asserts that every tool's schema has no properties and no required fields, so a future
   tool that grows an argument has to be added deliberately.
-- **Read once, at boot.** The whole set is read into a frozen map when the process starts.
-  An instruction call is a map lookup — no filesystem I/O on the read path — and a malformed set
+- **Read once, at boot.** The whole set is read when the process starts and never changed.
+  An instruction call is a lookup — no filesystem I/O on the read path — and a malformed set
   fails the process at startup rather than returning a wrong answer to the first caller
   that needed the file.
 - **The description is the routing key.** A tool's description is that file's own
@@ -43,27 +44,25 @@ instead of cloning or vendoring a copy of them.
   stores no model identifier does not carry a row about one, and the narrowing is visible
   in a diff rather than buried in a payload.
 - **Each tool ends in itself.** No tool links to, names, or sends the reader to another;
-  only `lxagents_skills_shared_instruction_automation` names them all. `test/server.test.ts` fails if one does.
+  only `lxagents_skills_shared_instruction_automation` names them all. `tests/surface.rs` fails if one does.
 
 ## Quick start
 
 ```bash
-npm install   # also compiles src/ to dist/, through the prepare script
-npm test      # builds, type-checks src/ and test/, then runs the suite
+cargo build --release   # target/release/lxagents-shared-instruction and …-http
+cargo test              # 87 tests, against the built binaries
 ```
-
-`npm run build` recompiles after you change a file in `src/`; the start scripts run `dist/`.
 
 Serve it to an MCP client over stdio:
 
 ```bash
-npm start
+target/release/lxagents-shared-instruction
 ```
 
 Or over HTTP on this machine only, with no token:
 
 ```bash
-HOST=127.0.0.1 npm run start:http
+HOST=127.0.0.1 target/release/lxagents-shared-instruction-http
 ```
 
 Or as a server over HTTP, on every interface, which will not start without a token of at least
@@ -71,13 +70,13 @@ Or as a server over HTTP, on every interface, which will not start without a tok
 
 ```bash
 export MCP_AUTH_TOKEN="$(openssl rand -hex 32)"
-npm run start:http
+target/release/lxagents-shared-instruction-http
 ```
 
 Or inspect the surface by hand:
 
 ```bash
-npm run inspect
+npx @modelcontextprotocol/inspector target/release/lxagents-shared-instruction
 ```
 
 Full instructions are in [`wiki/environments/setup.md`](wiki/environments/setup.md).
@@ -90,16 +89,15 @@ A local stdio server, named `lxagents-shared-instruction`:
 {
   "mcpServers": {
     "lxagents-shared-instruction": {
-      "command": "node",
-      "args": ["dist/index.js"],
-      "cwd": "/path/to/shared-instruction"
+      "command": "/path/to/shared-instruction/target/release/lxagents-shared-instruction"
     }
   }
 }
 ```
 
-For npm consumers the package exposes that binary, so `command: "npx"` with
-`args: ["-y", "@lxagents-skills/shared-instruction"]` works without a checkout. See
+No `args` and no `cwd`: the binary finds `content/` from its own path. **Before 6.0.6 this was
+`node dist/index.js`, or `npx @lxagents-skills/shared-instruction`; neither exists for the Rust
+server**, so replace an older entry. See
 [`wiki/guides/connect-a-repository.md`](wiki/guides/connect-a-repository.md).
 
 A server running at a fixed address is reached over HTTP instead:
@@ -118,7 +116,7 @@ A server running at a fixed address is reached over HTTP instead:
 
 **stdio is still the right default** wherever the client can spawn a process — it has no
 port to secure, no token to keep, and nothing to deploy. The HTTP form is for a host that
-cannot run Node 20, or for one service several clients share. Every HTTP request except
+cannot build the binary, or for one service several clients share. Every HTTP request except
 `GET /healthz` must carry `Authorization: Bearer <token>`, and a bearer token is only as
 private as the connection it travels on, so put TLS in front. Set `MCP_ALLOWED_HOSTS` on
 anything reachable beyond your own machine; the allow-list is off unless you set it. See
@@ -131,14 +129,14 @@ still absent from the tool surface until the session restarts.
 ## Docker
 
 ```bash
-docker build -t lxagents-shared-instruction:6.0.5 .
-docker run --rm -i lxagents-shared-instruction:6.0.5                            # stdio
-docker run --rm -p 3000:3000 -e MCP_AUTH_TOKEN lxagents-shared-instruction:6.0.5 node dist/http.js  # HTTP
+docker build -t lxagents-shared-instruction:6.0.6 .
+docker run --rm -i lxagents-shared-instruction:6.0.6                            # stdio
+docker run --rm -p 3000:3000 -e MCP_AUTH_TOKEN lxagents-shared-instruction:6.0.6 lxagents-shared-instruction-http  # HTTP
 ```
 
-A pinned, non-root image for hosts that cannot run Node 20. The default entrypoint is
+A pinned, non-root image for hosts without a Rust toolchain. The default command is
 stdio, so `-i` is not optional there — without it the server sees closed stdin and exits.
-Overriding the entrypoint to `dist/http.js` serves on port 3000 instead, and `-p` is what
+Naming `lxagents-shared-instruction-http` after the image serves on port 3000 instead, and `-p` is what
 makes that reachable; `EXPOSE` documents the port, it does not publish it. The HTTP form
 binds every interface inside the container, so it exits unless `MCP_AUTH_TOKEN` is set; stdio
 never needs it. Details in

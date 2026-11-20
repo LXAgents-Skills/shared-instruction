@@ -2,12 +2,9 @@
 
 How to run the shared instruction set from a clone on your own disk.
 
-The published npm package is the normal case — see
-[Connect a repository](connect-a-repository.md). Use a clone when:
-
-* **You are working on the instruction set itself** and want your edits live.
-* **You are offline**, or behind a network that will not reach the registry.
-* **Your client cannot run `npx`**, only a local command.
+**A clone is the normal case from 6.0.6.** The server is a Rust binary now, built from the
+clone, and nothing is published to npm or crates.io any more. A host serving it over HTTP is
+the other path — see [Connect a repository](connect-a-repository.md).
 
 ## The one rule that makes this safe
 
@@ -53,18 +50,19 @@ mkdir -p ./mcps/LXAgents-Skills
 git clone https://github.com/LXAgents-Skills/shared-instruction ./mcps/LXAgents-Skills/shared-instruction
 ```
 
-## 2. Install and verify
+## 2. Build and verify
 
 ```bash
 cd ./mcps/LXAgents-Skills/shared-instruction
-npm install
-npm test
+cargo build --release
+cargo test
 ```
 
-Node 20 or newer. `npm install` also compiles the TypeScript sources into `dist/`, through the
-`prepare` script, so there is no separate build step to remember. `npm test` builds, type-checks
-and reports **74 passing** — if the
-registry refuses to start, the error names the file and the invariant it broke.
+Rust 1.88 or newer, from <https://rustup.rs>. The first build downloads the dependencies from
+crates.io and takes a minute or two. It produces two binaries in `target/release/`:
+`lxagents-shared-instruction`, which a client spawns, and `lxagents-shared-instruction-http`.
+`cargo test` reports **87 passing**. If the set cannot be loaded, both binaries exit 1 with a
+line naming the file and the invariant it broke.
 
 ## 3. Ignore it — do this before your next commit
 
@@ -88,16 +86,16 @@ has to be updated.
 {
   "mcpServers": {
     "lxagents-shared-instruction": {
-      "command": "node",
-      "args": ["dist/index.js"],
-      "cwd": "./mcps/LXAgents-Skills/shared-instruction"
+      "command": "./mcps/LXAgents-Skills/shared-instruction/target/release/lxagents-shared-instruction"
     }
   }
 }
 ```
 
-If your client needs an absolute path, give it one — the relative form above is what the
-layout is for, but nothing depends on it.
+No `args` and no `cwd`: the binary finds `content/` from its own location, so it runs the
+same from any working directory. **A config from before 6.0.6 runs `node dist/index.js`, and
+that file no longer exists**; replace the entry with the one above. If your client needs an
+absolute path, give it one. On Windows the binary is `lxagents-shared-instruction.exe`.
 
 **This page is about the local stdio path, and stdio is the right default here.** A clone
 you run per client needs no port, no host, and no process kept alive between sessions.
@@ -106,7 +104,7 @@ The server also speaks HTTP, for when you want one instance serving several clie
 than one per client. **Bound to loopback it is still a local install and needs no token:**
 
 ```bash
-HOST=127.0.0.1 npm run start:http    # this machine only, no token; $PORT or 3000
+HOST=127.0.0.1 ./target/release/lxagents-shared-instruction-http    # this machine only, no token; $PORT or 3000
 ```
 
 ```json
@@ -125,7 +123,7 @@ a token; every client then sends it:
 
 ```bash
 export MCP_AUTH_TOKEN="$(openssl rand -hex 32)"
-npm run start:http
+./target/release/lxagents-shared-instruction-http
 ```
 
 with `"headers": { "Authorization": "Bearer ${MCP_AUTH_TOKEN}" }` added to the entry above. The
@@ -149,11 +147,11 @@ block. If it is not, install it locally:
 
     mkdir -p ./mcps/LXAgents-Skills
     git clone https://github.com/LXAgents-Skills/shared-instruction ./mcps/LXAgents-Skills/shared-instruction
-    cd ./mcps/LXAgents-Skills/shared-instruction && npm install
+    cd ./mcps/LXAgents-Skills/shared-instruction && cargo build --release
 
 Then register it as a stdio Skill MCP server named `lxagents-shared-instruction`, with
-`command: node`, `args: ["dist/index.js"]`, and
-`cwd: ./mcps/LXAgents-Skills/shared-instruction`. A host serving it over HTTP registers
+`command: ./mcps/LXAgents-Skills/shared-instruction/target/release/lxagents-shared-instruction`
+and no arguments. A host serving it over HTTP registers
 `type: http`, `url: https://<host>/mcp` and an `Authorization: Bearer <token>` header
 instead, under the same name; without the header every request is a `401`.
 
@@ -168,18 +166,19 @@ connector, it must not exist here as a file.
 
 ## Keeping it current
 
-A clone is a snapshot, so it goes stale — that is the cost you accepted by not using the
-published package.
+A clone is a snapshot, so it goes stale.
 
 ```bash
-cd ./mcps/LXAgents-Skills/shared-instruction && git pull && npm install
+cd ./mcps/LXAgents-Skills/shared-instruction && git pull && cargo build --release
 ```
 
 Then **restart the server**. The set is read once at boot into a frozen map, so a
 `git pull` does nothing to a process that is already running.
 
-To see what you are running against, `npm run inspect` lists the live surface, and
-`package.json` carries the version.
+To see what you are running against,
+`npx @modelcontextprotocol/inspector target/release/lxagents-shared-instruction` lists the live
+surface, `GET /healthz` on the HTTP binary answers with the version, and `Cargo.toml` carries
+it.
 
 ## Removing it
 
@@ -187,11 +186,10 @@ To see what you are running against, `npm run inspect` lists the live surface, a
 rm -rf ./mcps/LXAgents-Skills/shared-instruction
 ```
 
-Nothing else to undo — that is the point of keeping it out of git. Then add the npm
-connector per [Connect a repository](connect-a-repository.md).
+Nothing else to undo — that is the point of keeping it out of git.
 
 ## Related pages
 
-- [Connect a repository](connect-a-repository.md) — the normal, published path.
+- [Connect a repository](connect-a-repository.md) — the connector block, and the HTTP path.
 - [Local setup](../environments/setup.md) — running the server in detail.
 - [Skill MCP surface](../reference/mcp-surface.md) — the tool surface.

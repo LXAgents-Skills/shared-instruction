@@ -9,26 +9,33 @@ There is no CLI. There is a container image — see [Docker](docker.md).
 
 ## Requirements
 
-Node.js 20 or newer. The server is strict TypeScript (ESM) in `src/`, compiled by `tsc` to
-`dist/`. `npm install` runs that build through the `prepare` script, `npm run build` runs it by
-hand, and `npm test` runs it first (`pretest`), then type-checks `src/` and `test/` together.
-`dist/` is not committed.
+Rust 1.88 or newer (edition 2024), from <https://rustup.rs>. The server is one crate: a library
+in `src/lib.rs` on the official MCP Rust SDK (`rmcp`) and `axum`, and two binaries. `target/` is
+not committed.
 
 ```bash
-npm install
-npm test
+cargo build --release
+cargo test
 ```
 
-The suite is six files and a shared harness. `test/server.test.ts` drives a real MCP client over an in-memory
-transport and covers the frontmatter contract, the file-to-tool bijection in both
-directions, name derivation and overrides, uniqueness and descriptions, the zero-argument
-claim, byte-for-byte payload fidelity, total-served equality, reachability, the `lxagents_skills_shared_instruction_automation`
-hub, that no tool points at another, and the read-only claim. The five `test/http.*.test.ts` files drive
-a real client against a real listening process and covers the HTTP transport: the two
-transports agreeing, `/healthz`, the 405 and the 404, the SSE routes being **gone**, the
-4 MB body limit, concurrent requests, shutdown ordering, the `Host` allow-list, the startup
-warning when no allow-list is set, and the worker pool — two workers on one port, a dead
-worker replaced, no orphan surviving a killed primary, and stdio forking nothing.
+The first build downloads the dependencies from crates.io and takes a minute or two; later
+builds take seconds. It produces:
+
+| Binary | What it does |
+|---|---|
+| `target/release/lxagents-shared-instruction` | stdio by default; HTTP when `MCP_TRANSPORT=http` |
+| `target/release/lxagents-shared-instruction-http` | HTTP |
+
+The suite is 87 tests: unit tests beside the code, and six integration files in `tests/` that
+start the built binaries as child processes. `tests/surface.rs` drives the stdio binary and
+covers the frontmatter contract, the file-to-tool bijection, name derivation and overrides,
+uniqueness and descriptions, the zero-argument claim, byte-for-byte payload fidelity,
+total-served equality, reachability, the `lxagents_skills_shared_instruction_automation` hub,
+and that no tool points at another. The `tests/http_*.rs` files drive a real listening process:
+the two transports agreeing, `/healthz`, the 405 and the 404, the SSE routes being **gone**,
+the 4 MB body limit, concurrent requests, the `Host` allow-list and its startup lines, and the
+token. `tests/runtime.rs` covers transport selection, the worker threads, SIGINT and SIGTERM
+drains, and a broken set stopping both binaries.
 
 ---
 
@@ -36,108 +43,93 @@ worker replaced, no orphan surviving a killed primary, and stdio forking nothing
 
 ### Install
 
-An MCP client spawns the server as a subprocess, so "installing" it means pointing the
-client at it. From a checkout:
+An MCP client spawns the server as a subprocess, so "installing" it means pointing the client
+at the binary. From a checkout:
 
 ```json
 {
   "mcpServers": {
     "lxagents-shared-instruction": {
-      "command": "node",
-      "args": ["dist/index.js"],
-      "cwd": "/path/to/shared-instruction"
+      "command": "/path/to/shared-instruction/target/release/lxagents-shared-instruction"
     }
   }
 }
 ```
 
-From npm, the package exposes that same file as a bin, so no checkout is needed:
+No `args` and no `cwd`. The binary finds `content/` from its own path: the first ancestor
+directory of the executable that holds a `content/` directory, which is the checkout for
+`target/release/…`. A binary copied out of its checkout falls back to the checkout it was built
+from. Nothing is published to npm or crates.io, so there is no `npx` form.
 
-```json
-{
-  "mcpServers": {
-    "lxagents-shared-instruction": {
-      "command": "npx",
-      "args": ["-y", "@lxagents-skills/shared-instruction"]
-    }
-  }
-}
-```
-
-There is a remote form as well, for a server running at a fixed address. `src/http.ts`
-serves the same tools at `POST /mcp`; see
+There is a remote form as well, for a server running at a fixed address.
+`lxagents-shared-instruction-http` serves the same tools at `POST /mcp`; see
 [Connect a repository](../guides/connect-a-repository.md).
 
 ### Run
 
 ```bash
-npm start             # stdio
-npm run start:stdio   # the same thing, named for what it is
-HOST=127.0.0.1 npm run start:http                             # HTTP on this machine only, no token
-MCP_AUTH_TOKEN="$(openssl rand -hex 32)" npm run start:http   # HTTP as a server on 0.0.0.0:3000, or $PORT
+target/release/lxagents-shared-instruction                                    # stdio
+HOST=127.0.0.1 target/release/lxagents-shared-instruction-http                # HTTP on this machine only, no token
+MCP_AUTH_TOKEN="$(openssl rand -hex 32)" target/release/lxagents-shared-instruction-http   # HTTP on 0.0.0.0:3000, or $PORT
 ```
+
+`cargo run --release --bin lxagents-shared-instruction-http` builds and runs in one step.
 
 **A server needs a token; a local install does not.** stdio never reads `MCP_AUTH_TOKEN`, and
 neither does HTTP bound to loopback unless you set it. On any other `HOST`, the default
-included, `start:http` exits with code `1` and one line on stderr if `MCP_AUTH_TOKEN` is unset
-or shorter than 32 characters. The one-liner above makes a
-throwaway token for a throwaway run; for anything a client will reach, generate it once, keep it,
-and give the same value to the clients. See [Environment variables](env.md).
+included, the HTTP binary exits with code `1` and one line on stderr if `MCP_AUTH_TOKEN` is
+unset or shorter than 32 characters. The one-liner above makes a throwaway token for a
+throwaway run; for anything a client will reach, generate it once, keep it, and give the same
+value to the clients. See [Environment variables](env.md).
 
-The two entry points differ only in transport. Same tools, same content, same
-read-only surface. `MCP_TRANSPORT=http node dist/index.js` is the same server reached the
-other way round, which is how the other servers in the organization select a transport.
+The two binaries differ only in transport. Same tools, same content, same read-only surface.
+`MCP_TRANSPORT=http target/release/lxagents-shared-instruction` is the same HTTP server reached
+the other way round, which is how the other servers in the organization select a transport.
 
-`start:http` forks one worker per CPU. `MCP_CLUSTER_WORKERS=1` makes it a single process,
-which is what you want when debugging the port or behind a single-connection ingress. See
+The HTTP server runs one Tokio worker thread per CPU behind one listener.
+`MCP_CLUSTER_WORKERS=1` makes it single-threaded, which is what you want when debugging. See
 [Environment variables](env.md).
 
 ### Inspect it
 
 ```bash
-npm run inspect
+npx @modelcontextprotocol/inspector target/release/lxagents-shared-instruction
 ```
 
-This runs the MCP Inspector against the stdio server, listing every tool and letting you
-call it. With no prompts or resources, the tool list is the whole surface.
+This runs the MCP Inspector against the stdio server, listing every tool and letting you call
+it. With no prompts or resources, the tool list is the whole surface.
 
-### stdout belongs to the protocol — on stdio
+### stdout belongs to the protocol
 
-On the stdio transport, stdout **is** the JSON-RPC channel. Nothing in `src/index.ts`
-writes to it: there is no logger module, and no `console.log` on that path. A
-`console.log` added there would corrupt the protocol stream, which is worth knowing before
-adding one.
-
-**`src/http.ts` used to be the exception, and no longer is.** It logged its startup lines to
-stdout, on the reasoning that the HTTP process speaks JSON-RPC over a socket rather than a
-pipe, so stdout was an ordinary logging channel there. That was true and is still true —
-and it stopped mattering when `src/index.ts` gained `MCP_TRANSPORT=http` and began reaching
-`src/http.ts` by dynamic import. The same file is now one hop away from a process whose
-stdout is a protocol stream, so **both HTTP entry points log to stderr**, and the rule is
-one rule rather than an exception with a footnote. A test asserts stdout stays empty.
+On the stdio transport, stdout **is** the JSON-RPC channel, and the main binary can be either
+transport. So nothing in the crate writes to stdout: every log line goes through `src/log.rs`
+to stderr, there is no `println!` in `src/`, and no `tracing` subscriber is installed. A line
+added to stdout would corrupt the protocol stream. Tests assert stdout stays empty on HTTP and
+carries only JSON-RPC on stdio.
 
 ---
 
 ## Content changes require a restart
 
-The instruction set is read once at boot into a frozen map, so editing anything under
-`content/` has no effect until the process restarts. This is deliberate — a versioned,
-released set that is never served half-applied is worth more than live reload — and it is
-the reason the boot-time checks below exist.
+The instruction set is read once at boot, so editing anything under `content/` has no effect
+until the process restarts. It does not need a rebuild: the files are read at run time, not
+compiled in. This is deliberate — a released set that is never served half-applied is worth
+more than live reload — and it is the reason the boot-time checks below exist.
 
-Boot **fails deliberately** when a file under `content/`:
+Boot **fails deliberately**, in both binaries and before any transport opens, when a file under
+`content/`:
 
 - derives a name that is not a valid MCP tool identifier
 - derives the same name as another file in a different folder
 - has no frontmatter `description`
-- is named by a `NAME_OVERRIDES` entry that matches no file
+- is named by an `OVERRIDE_BASES` entry that matches no file
 
 Each would break routing for every consuming repository, so each is a startup error rather
-than a runtime surprise. The fix is usually one line in `NAME_OVERRIDES` in
-`src/instructions/from-content.ts`.
+than a runtime surprise. The fix is usually one line in `OVERRIDE_BASES` in
+`src/instructions.rs`.
 
 ## Related pages
 
 - [Skill MCP surface](../reference/mcp-surface.md) — the tool surface, and what is not exposed.
-- [Environment variables](env.md) — the five the HTTP transport reads.
+- [Environment variables](env.md) — the six the server reads.
 - [Architecture](../information/architecture.md) — how the surface is generated.

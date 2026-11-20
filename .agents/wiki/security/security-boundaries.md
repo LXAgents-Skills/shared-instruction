@@ -47,11 +47,11 @@ that would violate it, not after.
 | About to touch… | Verify before committing |
 |---|---|
 | Anything under `content/` | It cannot direct another repository's agent to run a command, weaken a convention, or skip a permission gate. This is the highest-reach change in the repository — see the trust boundary in the human page. |
-| A tool's shape in `src/instructions/from-content.ts` | It still takes **no argument**. A path parameter is the single change that would reopen traversal, and it is the one to argue against hardest. |
+| A tool's shape in `src/instructions.rs` | It still takes **no argument**. A path parameter is the single change that would reopen traversal, and it is the one to argue against hardest. |
 | The read path | No filesystem or network I/O was introduced. Reads are in-memory lookups, and that is what stops a read being steered at the disk. |
 | `Dockerfile` | `--ignore-scripts` survives, the runtime stage still ends as `USER node`, and any `EXPOSE` still matches the port the entrypoint actually binds. Either of the first two dropped turns a pinned, non-root image into one that runs install hooks as root. |
-| `src/http.ts`, or anything touching a transport | `MCP_ALLOWED_HOSTS` still defaults to unset rather than to a permissive list, sessions are still deleted when their stream closes, and no `McpServer` is shared between them. HTTP still refuses to start without `MCP_AUTH_TOKEN`, and stdio still never reads it. |
-| `src/auth.ts`, or the middleware order in `src/app.ts` | The check still runs after the `Host` allow-list and before the body parser and every route; the comparison is still constant-time; `GET /healthz` is still the only exemption and still exact; there is still no query-string form, no opt-out flag and no loopback waiver; and the token still never reaches a log line, an error or a response. A test pins each of these, and each was shown to fail when its control was removed. |
+| `src/http.rs`, or anything touching a transport | `MCP_ALLOWED_HOSTS` still defaults to unset rather than to a permissive list, the transport is still stateless with no session minted, and per-connection state still belongs to rmcp, never to the shared set. HTTP still refuses to start without `MCP_AUTH_TOKEN`, and stdio still never reads it. |
+| `src/auth.rs`, or the middleware order in `src/app.rs` | The check still runs after the `Host` allow-list and before the body read and every route; the comparison is still constant-time; `GET /healthz` is still the only exemption and still exact; there is still no query-string form, no opt-out flag and no loopback waiver; and the token still never reaches a log line, an error or a response. A test pins each of these, and each was shown to fail when its control was removed. |
 | A new dependency | It is genuinely needed — [`../../rules/repository.md`](../../rules/repository.md) names the three in the runtime tree and requires a recorded decision for a fourth. Each one is transitive attack surface. |
 | Any config default | Loosening a default is a posture change affecting every consumer, not a convenience. Raise it rather than take it. |
 
@@ -68,7 +68,7 @@ Ask the user; do not resolve these on your own initiative.
   at someone else's host, or a connector that resolves where you did not configure it is
   now a finding: stop and say so.
 * **Making any served content non-public.** The bearer token gates who may use a deployed
-  instance, not the text: the set is on npm and in every checkout, so a key on this server
+  instance, not the text: the set is in every checkout, so a key on this server
   does not make a byte of it confidential. That change needs a different delivery mechanism,
   and it is bigger than it looks. The HTTP transport made it a live question rather than a
   structural impossibility.
