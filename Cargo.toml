@@ -1,6 +1,6 @@
 [package]
 name = "lxagents-shared-instruction"
-version = "6.0.5"
+version = "6.0.6"
 edition = "2024"
 rust-version = "1.88"
 description = "Read-only Skill MCP server that delivers the LXAgents shared agent instruction set, one tool per file in content/."
