@@ -46,3 +46,26 @@ rewritten for Rust in task 2.
 ### Task 1 — plan/rust-migration
 
 Landed: this record and its row in `memory-index.md`.
+
+### Task 2 — refactor/rust-server
+
+Landed: `Cargo.toml` and `Cargo.lock`; `src/` as Rust (`lib.rs`, `version`, `instructions`,
+`server`, `auth`, `rpc_error`, `app`, `http`, `stdio`, `log`, `main.rs`, and
+`src/bin/lxagents-shared-instruction-http.rs`); `tests/` as Rust (`surface`, `http_auth`,
+`http_hosts`, `http_limits`, `http_routes`, `runtime`, and `common/mod.rs`); the two-stage Rust
+`Dockerfile` and its `.dockerignore`; `/target/` in `.gitignore`; `.agents/rules/repository.md`
+rewritten for the Rust stack; the decision record `rust-rmcp-and-axum.md`, superseding the
+express one. Deleted: `package.json`, `package-lock.json`, both `tsconfig` files, every `.ts`.
+
+Verified: 87 tests pass (21 unit, 66 integration) and clippy is clean with `-D warnings`. A
+stdio dump of all 49 tools from the 6.0.5 Node server and from this build matched exactly —
+order, names, descriptions, input schemas, served text, and the server `instructions`.
+
+Not ported, because the thing they tested no longer exists: worker respawn, an orphaned worker
+after the primary is killed, and one startup line per forked process. Replaced by thread-count,
+single-listener, SIGTERM and broken-set tests.
+
+Not verified: the image build. This environment has the Docker client but no daemon.
+
+Left for task 3: every page in `wiki/`, `README.md`, `AGENTS.md`, `.agents/wiki/` and
+`.agents/rules/content-publishing.md` still describes Node, `npm` and `dist/`.

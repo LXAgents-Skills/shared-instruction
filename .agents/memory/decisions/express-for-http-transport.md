@@ -5,6 +5,9 @@ description: Why express became the third runtime dependency, for the HTTP trans
 
 # express as a third runtime dependency
 
+> **Superseded in 6.0.6.** The server is Rust now and has no express; see
+> [`rust-rmcp-and-axum.md`](rust-rmcp-and-axum.md). Kept as the record of the Node design.
+
 `.agents/rules/repository.md` states the runtime dependencies are the MCP SDK and zod, and
 that adding a third "needs a reason in `.agents/memory/decisions/`". This is that reason.
 
